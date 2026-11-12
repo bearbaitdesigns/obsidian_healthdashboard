@@ -491,4 +491,4 @@ npm test            # builds, then runs the test suites against a mock of Obsidi
 npm run test-data   # writes about 7 months of made-up notes for every dashboard into test-data/
 ```
 
-**Releasing.** Set the new version in `manifest.json` and `package.json`, add it to `versions.json`, commit, then push a tag with exactly that version (for example `git tag 1.16.5 && git push origin 1.16.5`). The release workflow builds the plugin and publishes a GitHub release with `main.js`, `manifest.json` and `styles.css`, which BRAT picks up.
+**Releasing.** Set the new version in `manifest.json` and `package.json`, add it to `versions.json` and push to `main`. Then open **Actions → Release → Run workflow**. It builds the plugin and publishes a GitHub release tagged with that version, with `main.js`, `manifest.json` and `styles.css` attached, which BRAT picks up. Pushing a tag with exactly that version (for example `1.16.5`) does the same.
