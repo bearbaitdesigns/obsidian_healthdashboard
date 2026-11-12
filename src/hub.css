@@ -397,3 +397,19 @@ body.hd-no-select { user-select: none; -webkit-user-select: none; }
 /* CSV and PDF report sit in the tab row on every tab, on the right */
 .hd-tabrow > .hd-tabs + .hd-moved { margin-left: auto; }
 .hd-tabrow > .hd-tabrow-btn { display: inline-flex; align-items: center; gap: 6px; flex: none; }
+
+/* Doctor visits: "Since your last visit", one block per tracker */
+.dv-since-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; margin-top: 6px; }
+.dv-since-group { border: 1px solid var(--background-modifier-border); border-left: 3px solid var(--dv-since-c, var(--text-faint)); border-radius: 8px; padding: 8px 10px; background: var(--background-primary); }
+.dv-since-group.is-empty { opacity: 0.7; }
+.dv-since-head { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: var(--font-ui-small); margin-bottom: 4px; color: var(--text-normal); }
+.dv-since-icon { display: inline-flex; color: var(--dv-since-c, var(--text-muted)); }
+.dv-since-icon svg { width: 15px; height: 15px; }
+.dv-since-group ul { margin: 0; padding-left: 16px; font-size: var(--font-ui-small); color: var(--text-muted); }
+.dv-since-group.is-empty ul { list-style: none; padding-left: 0; font-style: italic; }
+.dv-since-period { --dv-since-c: var(--hd-period, #b8325a); }
+.dv-since-migraine { --dv-since-c: var(--hd-migraine, #4a9a2e); }
+.dv-since-bp { --dv-since-c: #c0392b; }
+.dv-since-illness { --dv-since-c: #e08a2b; }
+.dv-since-meds { --dv-since-c: #2c6fbb; }
+.dv-since-a1c { --dv-since-c: #7a4fd0; }

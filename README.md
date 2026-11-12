@@ -198,9 +198,9 @@ You can log an upcoming visit ahead of time with your questions, then add notes 
 
 The dashboard shows:
 - **Tiles:** next visit, last visit, visits in the last 12 months, and follow-ups to book (highlighted when overdue).
-- **Upcoming visits:** each one shows your questions to ask and a **Since your last visit** summary pulled from your other trackers: migraines, migraine days, average peak pain, acute-medication days, the most common trigger, and periods with their length and cycle. It's ready to bring up during the appointment.
+- **Upcoming visits:** each one shows your questions to ask and a **Since your last visit** summary, with one block per dashboard in your tab order: periods and cycle lengths; migraines, migraine days, average peak pain, aura, acute-medication days and the most common trigger; average blood pressure with morning and evening; sickness; medications started or stopped; and your latest A1C. A dashboard with nothing new says so. It's ready to bring up during the appointment.
 - **Follow-ups to book:** follow-up dates that no later visit with the same doctor (or clinic) has covered yet. **Add visit** opens a new visit with the doctor, clinic and reason already filled in.
-- **Visit history:** grouped by year, with search across all notes, results and medications, and filters by doctor or clinic and by topic.
+- **Visit history:** grouped by year, with search across all notes, results and medications, and filters by year, by doctor or clinic and by topic. Switch between three views with the buttons beside the heading: **Cards** (the default, full notes), **Grid** (compact tiles) and **List** (a table). Click a tile or row to edit the visit; the note icon opens the note. Your choice of view is remembered.
 - **Your care team:** each doctor with their clinic, specialty, number of visits, and last and next visit.
 - **CSV export** of all visits.
 

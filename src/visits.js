@@ -13,6 +13,7 @@ const ENTRY = 'doctor-visit';
 const DEFAULT_SETTINGS = {
   folder: 'Doctor Visits',
   showStatusBar: true,
+  historyView: 'cards', // cards | grid | list
   clinics: [],
   doctors: [],
   specialties: ['General practice', 'Neurology', 'Gynecology', 'Endocrinology', 'Headache clinic', 'Pain clinic',
@@ -297,7 +298,7 @@ class VisitsRenderer {
   constructor(plugin, el) {
     this.plugin = plugin;
     this.el = el;
-    this.filter = { doctor: '', topic: '', q: '' };
+    this.filter = { doctor: '', topic: '', q: '', year: '' };
     this.showAll = false;
   }
 
@@ -379,6 +380,19 @@ class VisitsRenderer {
     /* History */
     const hist = el.createDiv({ cls: 'dv-section-heading dv-hist-head' });
     hist.createSpan({ text: 'Visit history' });
+    // Cards (default), grid or list
+    const views = hist.createDiv({ cls: 'dv-views', attr: { role: 'group', 'aria-label': 'History view' } });
+    const VIEWS = [['cards', 'rows-3', 'Cards'], ['grid', 'layout-grid', 'Grid'], ['list', 'list', 'List']];
+    const curView = () => (VIEWS.some((x) => x[0] === this.plugin.settings.historyView) ? this.plugin.settings.historyView : 'cards');
+    for (const [id, icon, label] of VIEWS) {
+      const b = views.createEl('button', { cls: 'clickable-icon dv-view-btn' + (curView() === id ? ' is-active' : ''), attr: { 'aria-label': label + ' view', 'aria-pressed': String(curView() === id) } });
+      setIcon(b, icon);
+      b.onclick = async () => {
+        this.plugin.settings.historyView = id; await this.plugin.saveSettings();
+        for (const x of views.children) { const on = x === b; x.toggleClass('is-active', on); x.setAttribute('aria-pressed', String(on)); }
+        this.renderHistory(listEl, past, today);
+      };
+    }
     const filters = el.createDiv({ cls: 'dv-filters' });
     const search = filters.createEl('input', { type: 'search', attr: { placeholder: 'Search notes, results, medications…', 'aria-label': 'Search visits' } });
     search.value = this.filter.q;
@@ -390,6 +404,7 @@ class VisitsRenderer {
       s.value = this.filter[key];
       s.onchange = () => { this.filter[key] = s.value; this.renderHistory(listEl, past, today); };
     };
+    sel('All years', [...new Set(past.map((v) => v.date.slice(0, 4)))].sort().reverse(), 'year');
     sel('All doctors and clinics', [...new Set(past.map((v) => v.doctor || v.clinic))].sort(), 'doctor');
     sel('All topics', [...new Set(past.flatMap((v) => v.related))].sort(), 'topic');
     const listEl = el.createDiv({ cls: 'dv-history' });
@@ -403,6 +418,7 @@ class VisitsRenderer {
     listEl.empty();
     const f = this.filter, q = f.q.trim().toLowerCase();
     const shown = past.filter((v) => {
+      if (f.year && v.date.slice(0, 4) !== f.year) return false;
       if (f.doctor && (v.doctor || v.clinic) !== f.doctor) return false;
       if (f.topic && !v.related.includes(f.topic)) return false;
       if (q) {
@@ -412,17 +428,71 @@ class VisitsRenderer {
       return true;
     });
     if (!shown.length) { listEl.createDiv({ cls: 'dv-muted dv-pad', text: past.length ? 'No visits match these filters.' : 'No past visits yet.' }); return; }
-    const limit = this.showAll ? shown.length : 10;
-    let year = null;
-    shown.slice(0, limit).forEach((v, i) => {
+    const view = ['grid', 'list'].includes(this.plugin.settings.historyView) ? this.plugin.settings.historyView : 'cards';
+    const limit = this.showAll || f.year ? shown.length : view === 'cards' ? 10 : 30;
+    listEl.className = 'dv-history is-' + view;
+    let year = null, box = listEl;
+    if (view === 'list') {
+      const t = listEl.createEl('table', { cls: 'dv-list' });
+      const hr = t.createEl('thead').createEl('tr');
+      for (const h of ['Date', 'Reason', 'Doctor · clinic', 'Type', 'Result', 'Follow-up', '']) hr.createEl('th', { text: h });
+      box = t.createEl('tbody');
+    }
+    shown.slice(0, limit).forEach((v) => {
       const y = v.date.slice(0, 4);
-      if (y !== year) { year = y; listEl.createDiv({ cls: 'dv-year', text: y }); }
-      this.visitCard(listEl, v, today, false, null);
+      if (y !== year) {
+        year = y;
+        if (view === 'list') box.createEl('tr', { cls: 'dv-list-year' }).createEl('td', { text: y, attr: { colspan: '7' } });
+        else { listEl.createDiv({ cls: 'dv-year', text: y }); if (view === 'grid') box = listEl.createDiv({ cls: 'dv-grid' }); }
+      }
+      if (view === 'cards') this.visitCard(listEl, v, today, false, null);
+      else if (view === 'grid') this.visitTile(box, v);
+      else this.visitRow(box, v);
     });
     if (shown.length > limit) {
       const more = listEl.createEl('button', { cls: 'dv-more', text: 'Show all ' + shown.length + ' visits' });
       more.onclick = () => { this.showAll = true; this.renderHistory(listEl, past, today); };
     }
+  }
+
+  /** Compact tile for the grid view; click to edit, the icon opens the note */
+  visitTile(parent, v) {
+    const p = this.plugin, d = parseKey(v.date);
+    const t = parent.createDiv({ cls: 'dv-tile', attr: { tabindex: '0', role: 'button', 'aria-label': 'Edit visit: ' + (v.reason || 'Visit') + ', ' + fmtKey(v.date) } });
+    const top = t.createDiv({ cls: 'dv-tile-top' });
+    top.createDiv({ cls: 'dv-tile-date', text: MONTHS[d.getMonth()] + ' ' + d.getDate() + (v.time ? ' · ' + v.time : '') });
+    const open = top.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Open note' } });
+    setIcon(open, 'file-text');
+    open.onclick = (e) => { e.stopPropagation(); p.app.workspace.getLeaf('tab').openFile(v.file); };
+    t.createDiv({ cls: 'dv-tile-reason', text: v.reason || 'Visit' });
+    t.createDiv({ cls: 'dv-tile-who', text: [v.doctor, v.clinic].filter(Boolean).join(' · ') || ' ' });
+    const res = v.outcome || v.nextSteps || v.discussed;
+    if (res) t.createDiv({ cls: 'dv-tile-res', text: res });
+    const tags = t.createDiv({ cls: 'dv-tile-tags' });
+    if (v.type) tags.createSpan({ cls: 'dv-badge', text: v.type });
+    for (const r of v.related.slice(0, 2)) tags.createSpan({ cls: 'dv-tag', text: r });
+    if (v.followUp) tags.createSpan({ cls: 'dv-badge', text: 'Follow up ' + fmtKey(v.followUp) });
+    const edit = () => new VisitModal(p, v).open();
+    t.onclick = edit;
+    t.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); edit(); } });
+  }
+  /** One row in the list view */
+  visitRow(tbody, v) {
+    const p = this.plugin;
+    const tr = tbody.createEl('tr', { cls: 'dv-list-row', attr: { tabindex: '0', title: 'Click to edit' } });
+    tr.createEl('td', { cls: 'dv-nowrap', text: fmtKey(v.date) + (v.time ? ' ' + v.time : '') });
+    tr.createEl('td', { cls: 'dv-list-reason', text: v.reason || 'Visit' });
+    tr.createEl('td', { text: [v.doctor, v.clinic].filter(Boolean).join(' · ') });
+    tr.createEl('td', { cls: 'dv-nowrap', text: v.type || '' });
+    tr.createEl('td', { cls: 'dv-list-res', text: v.outcome || v.nextSteps || '' });
+    tr.createEl('td', { cls: 'dv-nowrap', text: v.followUp ? fmtKey(v.followUp) : '' });
+    const c = tr.createEl('td', { cls: 'dv-list-tools' });
+    const open = c.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Open note' } });
+    setIcon(open, 'file-text');
+    open.onclick = (e) => { e.stopPropagation(); p.app.workspace.getLeaf('tab').openFile(v.file); };
+    const edit = () => new VisitModal(p, v).open();
+    tr.onclick = edit;
+    tr.addEventListener('keydown', (e) => { if (e.key === 'Enter') edit(); });
   }
 
   visitCard(parent, v, today, upcoming, past) {
@@ -462,8 +532,22 @@ class VisitsRenderer {
       field('Questions to ask', v.questions, 'dv-questions');
       const prev = this.prevDate(v);
       const from = prev || addDaysKey(today, -90);
-      const since = p.sinceSummary ? p.sinceSummary(from, today) : null;
-      if (since && since.length) {
+      const groups = p.sinceGroups ? p.sinceGroups(from, today) : null;
+      const since = !groups && p.sinceSummary ? p.sinceSummary(from, today) : null;
+      if (groups && groups.length) {
+        // One small block per tracker, in your tab order
+        const f = body.createDiv({ cls: 'dv-field dv-since' });
+        f.createDiv({ cls: 'dv-field-label', text: prev ? 'Since your last visit (' + fmtKey(prev) + ')' : 'Last 90 days' });
+        const grid = f.createDiv({ cls: 'dv-since-grid' });
+        for (const g of groups) {
+          const b = grid.createDiv({ cls: 'dv-since-group dv-since-' + g.key + (g.empty ? ' is-empty' : '') });
+          const h = b.createDiv({ cls: 'dv-since-head' });
+          setIcon(h.createSpan({ cls: 'dv-since-icon' }), g.icon);
+          h.createSpan({ text: g.label });
+          const ul = b.createEl('ul');
+          for (const line of g.lines) ul.createEl('li', { text: line });
+        }
+      } else if (since && since.length) {
         const f = body.createDiv({ cls: 'dv-field dv-since' });
         f.createDiv({ cls: 'dv-field-label', text: prev ? 'Since your last visit (' + fmtKey(prev) + ')' : 'Last 90 days' });
         const ul = f.createEl('ul');

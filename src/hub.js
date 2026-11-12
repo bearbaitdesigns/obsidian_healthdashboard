@@ -1577,6 +1577,7 @@ class HealthDashboardPlugin extends Plugin {
     } else {
       mod.onRefresh = () => this.refreshHub();
       if (def.key === 'visits') mod.sinceSummary = (fromKey, toKey) => this.sinceSummary(fromKey, toKey);
+      if (def.key === 'visits') mod.sinceGroups = (fromKey, toKey) => this.sinceGroups(fromKey, toKey);
       // Cross-tracker helpers: current medications appear as choices; doctors from visits as prescribers
       if (def.key === 'bp' || def.key === 'a1c') mod.currentMeds = () => (this.meds ? this.meds.currentRows() : []);
       if (def.key === 'meds' || def.key === 'a1c') mod.prescriberOptions = () => (this.visits ? [...new Set(this.visits.getVisits().map((v) => v.doctor).filter(Boolean).concat(this.visits.settings.doctors))] : []);
@@ -1622,22 +1623,37 @@ class HealthDashboardPlugin extends Plugin {
   }
 
   /* Health snapshot between two days, shown on upcoming doctor visits */
+  /** Since-last-visit summary as one flat list (older callers) */
   sinceSummary(fromKey, toKey) {
-    const lines = [];
+    return this.sinceGroups(fromKey, toKey).flatMap((g) => {
+      if (g.empty) return [];
+      // without a heading, say which tracker a line is about
+      if (g.key === 'bp') return ['Blood pressure averaged ' + g.lines[0].replace(/^Average /, '') + (g.lines[1] ? '; ' + g.lines[1][0].toLowerCase() + g.lines[1].slice(1) : '')];
+      if (g.key === 'a1c') return g.lines.map((l) => 'A1C ' + l);
+      return g.lines;
+    });
+  }
+  /** Since-last-visit summary grouped by tracker, in your tab order: [{ key, label, icon, lines, empty }] */
+  sinceGroups(fromKey, toKey) {
+    const groups = {};
+    const put = (key, lines, emptyText) => { groups[key] = lines.length ? { lines, empty: false } : { lines: [emptyText], empty: true }; };
+    const day1 = KitModule.addDaysKey(fromKey, 1);
     if (this.migraine) {
-      const all = this.migraine.getEpisodes();
+      const lines = [];
       const [y, m, d] = fromKey.split('-').map(Number);
-      const st = M.computeStats(all, 'custom', new Date(), this.migraine.settings, new Date(y, m - 1, d + 1));
-      if (!st.count) lines.push('No migraines logged');
-      else {
+      const st = M.computeStats(this.migraine.getEpisodes(), 'custom', new Date(), this.migraine.settings, new Date(y, m - 1, d + 1));
+      if (st.count) {
         let t = P.plural(st.count, 'migraine') + ' over ' + P.plural(st.migraineDays, 'day');
         if (st.avgPainMax != null) t += ', average peak pain ' + (Math.round(st.avgPainMax * 10) / 10) + '/' + M.getPainMax();
         lines.push(t);
+        if (st.auraCount) lines.push(P.plural(st.auraCount, 'migraine') + ' with aura');
         if (st.medDaysRange) lines.push('Acute medication on ' + P.plural(st.medDaysRange, 'day'));
         if (st.triggers.length) lines.push('Most common trigger: ' + st.triggers[0][0]);
       }
+      put('migraine', lines, 'No migraines logged');
     }
     if (this.period) {
+      const lines = [];
       const a = this.period.getAnalysis();
       const from = P.toDayNum(fromKey), to = P.toDayNum(toKey);
       const ps = a.periods.filter((p) => p.start > from && p.start <= to);
@@ -1647,34 +1663,43 @@ class HealthDashboardPlugin extends Plugin {
         const cyc = ps.filter((p) => p.cycleLength != null).map((p) => p.cycleLength);
         if (cyc.length) t += Math.min(...cyc) === Math.max(...cyc) ? '; cycle ' + cyc[0] + ' days' : '; cycles ' + Math.min(...cyc) + '–' + Math.max(...cyc) + ' days';
         lines.push(t);
-      } else if (a.entries.length) lines.push('No periods logged');
+      }
+      put('period', lines, 'No periods logged');
     }
     if (this.bp) {
-      const st = this.bp.stats(KitModule.addDaysKey(fromKey, 1), toKey);
+      const lines = [];
+      const st = this.bp.stats(day1, toKey);
       if (st.n) {
-        let t = 'Blood pressure averaged ' + B.fmtBP(st.avg) + ' (' + P.plural(st.n, 'reading') + ')';
-        if (st.parts.Morning && st.parts.Evening) t += '; morning ' + B.fmtBP(st.parts.Morning) + ', evening ' + B.fmtBP(st.parts.Evening);
-        lines.push(t);
+        lines.push('Average ' + B.fmtBP(st.avg) + ' (' + P.plural(st.n, 'reading') + ')');
+        if (st.parts.Morning && st.parts.Evening) lines.push('Morning ' + B.fmtBP(st.parts.Morning) + ', evening ' + B.fmtBP(st.parts.Evening));
       }
+      put('bp', lines, 'No readings logged');
     }
     if (this.illness) {
-      const st = this.illness.stats(KitModule.addDaysKey(fromKey, 1), toKey);
+      const lines = [];
+      const st = this.illness.stats(day1, toKey);
       if (st.count) lines.push('Sick ' + P.plural(st.count, 'time') + ' (' + P.plural(st.sickDays, 'day') + ')' + (st.types.length ? ': ' + st.types.map((x) => x[0]).join(', ') : ''));
+      put('illness', lines, 'Not sick');
+    }
+    if (this.meds) {
+      const lines = [];
+      const ch = this.meds.changesBetween(fromKey, toKey);
+      if (ch.started.length) lines.push('Started: ' + ch.started.join(', '));
+      if (ch.stopped.length) lines.push('Stopped: ' + ch.stopped.join(', '));
+      put('meds', lines, 'No changes');
     }
     if (this.a1c) {
+      const lines = [];
       const rs = this.a1c.getRecords().slice().sort(A.sortAsc);
       const inRange = rs.filter((r) => r.date > fromKey && r.date <= toKey);
       if (inRange.length) {
         const L = inRange[inRange.length - 1], i = rs.indexOf(L), prev = i > 0 ? rs[i - 1] : null;
-        lines.push('A1C ' + this.a1c.fmt(L.pct) + ' on ' + V.fmtKey(L.date) + (prev ? ' (previous ' + this.a1c.fmt(prev.pct) + ')' : ''));
+        lines.push(this.a1c.fmt(L.pct) + ' on ' + V.fmtKey(L.date) + (prev ? ' (previous ' + this.a1c.fmt(prev.pct) + ')' : ''));
       }
+      put('a1c', lines, 'No new results');
     }
-    if (this.meds) {
-      const ch = this.meds.changesBetween(fromKey, toKey);
-      if (ch.started.length) lines.push('Started: ' + ch.started.join(', '));
-      if (ch.stopped.length) lines.push('Stopped: ' + ch.stopped.join(', '));
-    }
-    return lines;
+    return this.orderedTabs().map((t) => t.id).filter((k) => groups[k])
+      .map((k) => { const t = TABS.find((x) => x.id === k); return Object.assign({ key: k, label: t.label, icon: t.icon }, groups[k]); });
   }
 
   getModuleData(key) { return this.data[key] === undefined ? null : JSON.parse(JSON.stringify(this.data[key])); }

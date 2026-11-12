@@ -1,6 +1,6 @@
 {
   "name": "obsidian-healthdashboard",
-  "version": "1.16.4",
+  "version": "1.17.0",
   "description": "Health Dashboard for Obsidian: period, migraine, doctor visits, blood pressure, sickness, medications and A1C in one dashboard, with PDF reports for your doctor.",
   "private": true,
   "scripts": {
