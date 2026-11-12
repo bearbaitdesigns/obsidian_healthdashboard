@@ -1,0 +1,9 @@
+node_modules/
+dist/
+test-data/
+test/*.png
+test/*.pdf
+test/*.html
+test/x-*
+*.zip
+.DS_Store

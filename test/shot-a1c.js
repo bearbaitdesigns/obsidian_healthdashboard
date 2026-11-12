@@ -1,0 +1,23 @@
+const path = require('path'); const fs = require('fs');
+const { registry, makeApp } = require('./mock'); const { seed } = require('./run-seed'); const { seedNew, daysAgo } = require('./seed-new');
+const PluginClass = require(path.resolve('dist/main.js'));
+const src = fs.readFileSync('test/shot.js', 'utf8');
+eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
+(async () => {
+  const app = makeApp(); await seed(app); await seedNew(app);
+  const add = (p, fm) => app.vault.create(p, '---\n' + Object.entries(fm).map(([k, v]) => k + ': ' + JSON.stringify(v)).join('\n') + '\n---\n');
+  for (const [d, v, n] of [[560, 7.4, ''], [470, 7.1, ''], [380, 6.9, 'Started walking after dinner'], [290, 7.2, 'Had the flu two weeks before'], [200, 6.8, ''], [105, 6.6, ''], [2, 6.4, 'Doctor happy with the trend']]) await add('A1C/' + d + '.md', { entry: 'a1c-result', date: daysAgo(d), a1c_percent: v, test_type: 'Lab blood test', lab: 'Landspítali lab', notes: n });
+  const host = new PluginClass(app, { id: 'health-dashboard', name: 'Health Dashboard' }); host._loaded = true; await host.onload();
+  host.a1c.settings.useDoctorTarget = true; host.a1c.settings.target = 7; host.a1c.settings.displayUnit = 'both';
+  await new Promise(r => setTimeout(r, 400));
+  await registry.commands['health-dashboard:open-dashboard'].callback();
+  const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
+  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
+  const extra = '.clickable-icon{background:transparent;box-shadow:none;padding:4px}';
+  v.contentEl.querySelectorAll('.hd-tab').find((b) => b.textContent === 'A1C').click();
+  for (const th of ['light', 'dark']) fs.writeFileSync('test/out-a1c-' + th + '.html', `<!doctype html><meta charset=utf-8><style>${vars}${css}${extra}</style><body class="theme-${th}">${html(v.contentEl)}</body>`);
+  const A = require(path.resolve('dist/main.js'))._a1c;
+  fs.writeFileSync('A1C report (sample).pdf', Buffer.from(A.buildReport(host.a1c, { from: '', to: daysAgo(0), name: 'Sample Person', notes: 'Is 6.4% good enough to reduce the medication dose?', includeMeds: true })));
+  process.exit(0);
+})();

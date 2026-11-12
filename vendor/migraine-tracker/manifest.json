@@ -1,0 +1,9 @@
+{
+  "id": "migraine-tracker",
+  "name": "Migraine Tracker",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Log migraine episodes (timing, type, pain, symptoms, triggers, relief, medications, headache location) and see patterns on a dashboard with statistics and a calendar.",
+  "author": "You",
+  "isDesktopOnly": false
+}

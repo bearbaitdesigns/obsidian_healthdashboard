@@ -1,0 +1,13 @@
+{
+  "name": "obsidian-healthdashboard",
+  "version": "1.16.4",
+  "description": "Health Dashboard for Obsidian: period, migraine, doctor visits, blood pressure, sickness, medications and A1C in one dashboard, with PDF reports for your doctor.",
+  "private": true,
+  "scripts": {
+    "build": "node build.js vendor/period-tracker vendor/migraine-tracker dist && node -e \"require('fs').copyFileSync('manifest.json','dist/manifest.json')\"",
+    "test": "npm run build && node test/run.js dist/main.js && node test/selectors.js dist/main.js && node test/visits.js dist/main.js && node test/toggles.js dist/main.js && node test/newtrackers.js dist/main.js && node test/bpsettings.js dist/main.js && node test/a1c.js dist/main.js && node test/username.js dist/main.js && node test/order.js dist/main.js && node test/dragorder.js dist/main.js && node test/extras.js dist/main.js && node test/link.js dist/main.js && node test/migraine-fix.js dist/main.js && node test/help.js dist/main.js",
+    "test-data": "node tools/make-test-data.js \"test-data\""
+  },
+  "author": "bearbaitdesigns",
+  "license": "UNLICENSED"
+}

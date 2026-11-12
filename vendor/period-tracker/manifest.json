@@ -1,0 +1,9 @@
+{
+  "id": "period-tracker",
+  "name": "Period Tracker",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Log periods, flow, pain, symptoms and medications as Markdown notes. See cycle predictions on a dashboard and export a PDF report for your clinician.",
+  "author": "Period Tracker contributors",
+  "isDesktopOnly": false
+}
