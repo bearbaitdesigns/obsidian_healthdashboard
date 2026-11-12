@@ -302,7 +302,7 @@ const ExtrasMethods = {
     const vis = this.visits;
     new KK.ReportOptionsModal(vis, {
       title: 'Doctor visits report', defaultRange: '365',
-      toggles: [['includeLog', 'Include what was discussed at each visit', true]],
+      toggles: [['includeLog', 'Include what was discussed at each visit', true], ['includeSince', 'Include “Since your last visit”: what each dashboard recorded since the last visit', true]],
       build: async (o) => {
         const bytes = buildVisitsReport(this, o);
         const folder = obsidian.normalizePath((vis.settings.folder || 'Doctor Visits') + '/Reports');
@@ -348,6 +348,7 @@ function buildVisitsReport(host, o) {
     R.table([{ label: 'Date', w: 0.16 }, { label: 'With', w: 0.28, wrap: true }, { label: 'Reason', w: 0.18, wrap: true }, { label: 'Questions to ask', w: 0.38, wrap: true }],
       upcoming.map((v) => [KK.fmtKey(v.date) + (v.time ? ' ' + v.time : ''), [v.doctor, v.clinic].filter(Boolean).join(', '), v.reason || '–', v.questions || '–']));
   }
+  if (o.includeSince !== false && host.sinceGroups) writeSince(R, host, all, today);
   if (due.length) {
     R.heading('Follow-ups to book');
     R.table([{ label: 'Follow up by', w: 0.2 }, { label: 'With', w: 0.4, wrap: true }, { label: 'From the visit on', w: 0.4 }],
@@ -359,7 +360,7 @@ function buildVisitsReport(host, o) {
   else if (o.includeLog !== false) {
     R.table([{ label: 'Date', w: 0.14 }, { label: 'With', w: 0.2, wrap: true }, { label: 'Reason', w: 0.14, wrap: true }, { label: 'Discussed, results and next steps', w: 0.52, wrap: true }],
       past.map((v) => [KK.fmtKey(v.date), [v.doctor, v.clinic, v.specialty].filter(Boolean).join(', '), v.reason || '–',
-        [v.discussed, v.outcome ? 'Result: ' + v.outcome : '', v.nextSteps ? 'Next: ' + v.nextSteps : '', v.tests.length ? 'Tests: ' + v.tests.join(', ') : '', v.medChanges.length ? 'Medication: ' + v.medChanges.join('; ') : '', v.followUp ? 'Follow up by ' + KK.fmtKey(v.followUp) : ''].filter(Boolean).join('. ') || '–']), { size: 8 });
+        [v.discussed, v.outcome ? 'Result: ' + v.outcome : '', v.nextSteps ? 'Next: ' + v.nextSteps : '', v.tests.length ? 'Tests: ' + v.tests.join(', ') : '', v.medChanges.length ? 'Medication: ' + v.medChanges.join('; ') : '', v.followUp ? 'Follow up by ' + KK.fmtKey(v.followUp) : ''].filter(Boolean).map((t) => t.trim().replace(/\.+$/, '')).join('. ') || '–']), { size: 8 });
   } else R.table([{ label: 'Date', w: 0.2 }, { label: 'With', w: 0.5, wrap: true }, { label: 'Reason', w: 0.3, wrap: true }], past.map((v) => [KK.fmtKey(v.date), [v.doctor, v.clinic].filter(Boolean).join(', '), v.reason || '–']));
   // care team
   const team = new Map();
@@ -503,6 +504,34 @@ function writeCycleLink(R, host) {
   const extra = cd.outside ? KK.plural(cd.outside, 'migraine') + ' started more than ' + cd.R + ' days from a period start and are not drawn. ' : '';
   if (cd.pattern) R.note(extra + 'Migraines started in this window in at least 2 of every 3 cycles. Doctors look for this pattern when considering menstrually related migraine. This is not a diagnosis.');
   else R.para(extra + 'This is a pattern view, not a diagnosis.', { size: 8.5, color: KK.RC.muted });
+}
+
+/* "Since your last visit": one box per dashboard, two per row, in tab order */
+const SINCE_COLORS = { period: '#b8325a', migraine: '#4a9a2e', bp: '#c0392b', illness: '#e08a2b', meds: '#2c6fbb', a1c: '#7a4fd0' };
+function writeSince(R, host, all, today) {
+  const prev = all.filter((v) => !V.isUpcoming(v, today) && v.date <= today).map((v) => v.date).pop();
+  const from = prev || KitModule.addDaysKey(today, -90);
+  const groups = host.sinceGroups(from, today);
+  if (!groups.length) return;
+  R.heading(prev ? 'Since the last visit' : 'Last 90 days', prev ? 'From ' + KK.fmtKey(prev) + ' to ' + KK.fmtKey(today) + ', from the other trackers.' : 'No earlier visit is logged, so this covers the last 90 days.', 90);
+  const d = R.doc, gap = 10, colW = (R.W - gap) / 2, pad = 8, size = 8.4, lh = 11;
+  const boxes = groups.map((g) => {
+    const wrapped = g.lines.flatMap((l) => d.wrap(g.empty ? l : '• ' + l, colW - pad * 2 - 6, size));
+    return { g, wrapped, h: pad + 12 + wrapped.length * lh + pad - 2 };
+  });
+  for (let i = 0; i < boxes.length; i += 2) {
+    const row = boxes.slice(i, i + 2), h = Math.max(...row.map((b) => b.h));
+    R.ensure(h + gap);
+    row.forEach((b, j) => {
+      const x = R.M + j * (colW + gap), y = R.y, col = KK.MI.hexRgb(SINCE_COLORS[b.g.key] || '#888888');
+      d.rect(x, y, colW, h, { fill: KK.RC.panel });
+      d.rect(x, y, 3, h, { fill: col });
+      d.text(x + pad + 2, y + pad + 7, b.g.label, { size: 9, bold: true, color: b.g.empty ? KK.RC.muted : KK.RC.ink });
+      let yy = y + pad + 20;
+      for (const l of b.wrapped) { d.text(x + pad + 2, yy, l, { size, color: b.g.empty ? KK.RC.muted : KK.RC.ink }); yy += lh; }
+    });
+    R.y += h + gap;
+  }
 }
 
 /* ---------------- Merging PDFs (all reports are simple, uncompressed PDFs) ---------------- */

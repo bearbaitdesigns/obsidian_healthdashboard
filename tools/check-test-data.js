@@ -11,6 +11,7 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e
   let n = 0;
   for (const f of walk(DIR).filter((x) => x.endsWith('.md'))) {
     const txt = fs.readFileSync(f, 'utf8'); const m = /^---\n([\s\S]*?)\n---/.exec(txt);
+    if (!m) continue;
     const fm = YAML.parse(m[1]); // throws on bad YAML
     const rel = path.relative(DIR, f);
     await app.vault.create(rel, '---\n' + Object.entries(fm).map(([k, v]) => k + ': ' + JSON.stringify(v)).join('\n') + '\n---\n' + txt.slice(m[0].length)); n++;
@@ -25,6 +26,10 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e
   const B = host.bp.getRecords(); console.log('bp readings', B.length, 'from', B.map((r) => r.date).sort()[0]);
   console.log('illness', host.illness.getRecords().length, 'meds', host.meds.getRecords().length, 'current', host.meds.current().length, 'a1c', host.a1c.getRecords().length, 'visits', host.visits.getVisits().length);
   console.log('notes', host.getNotes ? host.getNotes().length : '?', 'missed', ['period', 'migraine'].map((k) => host.getMissed(k).length).join('/'));
+  if (process.env.VISITS_PDF) {
+    const bytes = Plugin._extras.buildVisitsReport(host, { from: '2026-05-12', to: '2026-11-12', name: 'Test Person', includeLog: true, includeGenNotes: true });
+    fs.writeFileSync(process.env.VISITS_PDF, Buffer.from(bytes)); console.log('visits report written');
+  }
   if (process.argv[3]) { // full health report
     const o = { from: '2026-05-12', to: '2026-11-12', name: 'Test Person', includeLog: true, includeMissed: true, includeGenNotes: true, notes: '', order: ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c'], allergies: true, rangeText: 'May 12, 2026 – Nov 12, 2026' };
     const { bytes, pageCount } = host.buildHealthReport(o);
