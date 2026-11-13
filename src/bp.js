@@ -243,8 +243,8 @@ class BPRenderer {
           .concat(doctorTarget(s) ? [{ y: target(s)[0], label: 'your target ' + target(s)[0], cls: 'bp-ref-target' }, { y: target(s)[1], label: 'your target ' + target(s)[1], cls: 'bp-ref-target' }] : []),
         series: [
           { name: 'Systolic', cls: 'bp-sys', points: st.daily.map((d) => ({ key: d.key, y: K.round(d.sys), title: K.fmtKey(d.key) + ': ' + fmtBP(d) + ' (' + K.plural(d.n, 'reading') + ')' })) },
-          { name: 'Diastolic', cls: 'bp-dia', points: st.daily.map((d) => ({ key: d.key, y: K.round(d.dia), title: K.fmtKey(d.key) + ': ' + fmtBP(d) })) },
-          { name: 'Pulse', cls: 'bp-pulse', points: st.daily.filter((d) => d.pulse != null).map((d) => ({ key: d.key, y: K.round(d.pulse), title: K.fmtKey(d.key) + ': pulse ' + Math.round(d.pulse) })) },
+          { name: 'Diastolic', cls: 'bp-dia', points: st.daily.map((d) => ({ key: d.key, y: K.round(d.dia), title: K.fmtKey(d.key) + ': ' + fmtBP(d) + ' (' + K.plural(d.n, 'reading') + ')' })) },
+          { name: 'Pulse', cls: 'bp-pulse', points: st.daily.filter((d) => d.pulse != null).map((d) => ({ key: d.key, y: K.round(d.pulse), title: 'Pulse ' + Math.round(d.pulse) + ' bpm' })) },
         ],
       });
     }

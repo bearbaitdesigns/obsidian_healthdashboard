@@ -496,7 +496,7 @@ class HubRenderer {
       console.error('Health dashboard render failed', e);
       panel.createDiv({ cls: 'hd-card hd-muted', text: 'Something went wrong drawing this view. Details are in the developer console.' });
     }
-    try { normalizeHeader(panel); addExpanders(panel, host.app); } catch (e) { console.error('Health Dashboard: chart expand buttons failed', e); }
+    try { normalizeHeader(panel); addExpanders(panel, host.app); addTooltips(el); } catch (e) { console.error('Health Dashboard: chart expand buttons failed', e); }
     if (this.scrollEl && !keepScrollTop) this.scrollEl.scrollTop = top;
   }
 
@@ -1457,7 +1457,7 @@ class HealthDashboardPlugin extends Plugin {
     this.addSettingTab(new HubSettingTab(this.app, this));
   }
 
-  onunload() { if (this._hubTimer) window.clearTimeout(this._hubTimer); }
+  onunload() { if (this._hubTimer) window.clearTimeout(this._hubTimer); try { removeTip(); } catch (e) { /* ignore */ } }
 
   normalizeSettings() {
     const s = this.settings;

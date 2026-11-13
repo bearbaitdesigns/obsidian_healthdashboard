@@ -272,6 +272,16 @@ period = patch(period, "      const out = c.cycleLength < 21 || c.cycleLength > 
   "      const out = c.cycleLength < REFS.min || c.cycleLength > REFS.max;\n      const r = svgEl(", 'period bar out');
 period = patch(period, "text: 'Shaded band: 21-35 days (common adult range). Orange bars fall outside it.' });",
   "text: 'Shaded band: ' + REFS.min + '–' + REFS.max + ' days (' + REFS.name + '). Orange bars fall outside it. Change the ranges in Period settings.' });", 'period band note');
+// Layout: cycle chart spans two columns beside the calendar; symptoms go below it, next to patterns
+period = patch(period, "    const box = grid.createDiv({ cls: 'pt-card' });\n    box.createEl('h4', { text: 'Cycle length' });",
+  "    const box = grid.createDiv({ cls: 'pt-card pt-card-cycle' });\n    box.createEl('h4', { text: 'Cycle length' });", 'period cycle card class');
+period = patch(period, "    const box = grid.createDiv({ cls: 'pt-card' });\n    box.createEl('h4', { text: 'Symptoms · last 6 months' });",
+  "    const box = grid.createDiv({ cls: 'pt-card pt-card-symptoms' });\n    box.createEl('h4', { text: 'Symptoms · last 6 months' });", 'period symptoms card class');
+period = patch(period, "    const box = grid.createDiv({ cls: 'pt-card' });\n    box.createEl('h4', { text: 'Patterns · last 12 months' });",
+  "    const box = grid.createDiv({ cls: 'pt-card pt-card-patterns' });\n    box.createEl('h4', { text: 'Patterns · last 12 months' });", 'period patterns card class');
+period = patch(period, "const VW = 600, VH = 230, L = 34, R = 10, T = 16, B = 34,", "const VW = 900, VH = 340, L = 34, R = 10, T = 16, B = 34,", 'period cycle chart wider');
+period = patch(period, "      svgEl('title', {}, r).textContent = fmtDate(c.start) + ': ' + c.cycleLength + ' days';",
+  "      svgEl('title', {}, r).textContent = 'Cycle from ' + fmtDate(c.start) + ': ' + c.cycleLength + ' days' + (out ? ' (outside ' + REFS.min + '–' + REFS.max + ')' : '');", 'period cycle tip');
 period = patch(period, "text: 'No cycles outside 21-35 days, no periods over 7 days and no severe pain recorded.' });",
   "text: 'No cycles outside ' + REFS.min + '–' + REFS.max + ' days, no periods over ' + REFS.maxLen + ' days and no severe pain recorded.' });", 'period no flags');
 period = patch(period,

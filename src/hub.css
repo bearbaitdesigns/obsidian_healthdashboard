@@ -413,3 +413,24 @@ body.hd-no-select { user-select: none; -webkit-user-select: none; }
 .dv-since-illness { --dv-since-c: #e08a2b; }
 .dv-since-meds { --dv-since-c: #2c6fbb; }
 .dv-since-a1c { --dv-since-c: #7a4fd0; }
+
+/* Period dashboard: symptoms and the cycle chart on top; patterns and the calendar (two columns wide) below */
+.hd-panel-period { container-type: inline-size; container-name: hdpt; }
+@container hdpt (min-width: 900px) {
+  .pt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pt-grid > .pt-card-symptoms { grid-column: 1; grid-row: 1; }
+  .pt-grid > .pt-card-cycle { grid-column: 2 / span 2; grid-row: 1; }
+  .pt-grid > .pt-card-patterns { grid-column: 1; grid-row: 2; }
+  .pt-grid > .pt-calendar { grid-column: 2 / span 2; grid-row: 2; }
+  .pt-grid > .pt-calendar .pt-cal-day { aspect-ratio: auto; height: 52px; }
+}
+
+/* Hover tooltips on charts */
+.hd-tip { position: fixed; z-index: var(--layer-tooltip, 70); pointer-events: none; max-width: 300px; padding: 6px 9px; border-radius: 6px;
+  background: var(--background-primary); color: var(--text-normal); border: 1px solid var(--background-modifier-border);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .15); font-size: var(--font-ui-smaller, 12px); line-height: 1.4; white-space: pre-line; }
+.hd-tip .hd-tip-main { font-weight: 600; }
+svg .is-tip { filter: brightness(0.88); }
+svg circle.is-tip { r: 5; stroke: var(--background-primary); stroke-width: 1.5; }
+.mt-vbar-col, .hk-hbar, .pt-hbar, .mt-hbar-row { cursor: default; }
+.mt-vbar-col:hover .mt-vbar, .hk-hbar:hover .hk-hbar-fill, .pt-hbar:hover .pt-hbar-fill, .mt-hbar-row:hover .mt-hbar { filter: brightness(0.88); }

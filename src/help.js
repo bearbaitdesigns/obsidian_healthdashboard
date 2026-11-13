@@ -465,8 +465,78 @@ class ExpandModal extends Modal {
     wrap.appendChild(clone);
     // a click on a bar or day in the copy has no handler; keep it read-only
     clone.querySelectorAll('button, [role="button"]').forEach((n) => n.setAttribute('tabindex', '-1'));
+    try { addTooltips(wrap); } catch (e) { /* tooltips are a nicety */ }
   }
   onClose() { this.contentEl.empty(); }
+}
+
+/* ---------------- Hover tooltips on bars and charts ---------------- */
+const TIP_ROWS = [['.hk-hbar', '.hk-hbar-label', '.hk-hbar-val', ''], ['.pt-hbar', '.pt-hbar-label', '.pt-hbar-count', ' logged days'], ['.mt-hbar-row', '.mt-hbar-label', '.mt-hbar-val', '']];
+let TIP_EL = null;
+function tipEl() {
+  if (!TIP_EL || !TIP_EL.isConnected) { TIP_EL = document.body.createDiv({ cls: 'hd-tip' }); TIP_EL.style.display = 'none'; }
+  return TIP_EL;
+}
+function removeTip() { if (TIP_EL) TIP_EL.remove(); TIP_EL = null; }
+/** Text for a horizontal-bar row, a migraine bar column or anything carrying a title */
+function htmlTip(el, root) {
+  for (let n = el; n && n !== root && n.nodeType === 1; n = n.parentElement) {
+    if (n.namespaceURI === 'http://www.w3.org/2000/svg') return null;
+    for (const [row, lab, val, unit] of TIP_ROWS) {
+      if (n.matches(row)) {
+        const l = n.querySelector(lab), v = n.querySelector(val);
+        if (l) l.removeAttribute('title');
+        return [(l ? l.textContent : '') + ': ' + (v ? v.textContent : '') + (unit && /^\d+$/.test(v ? v.textContent : '') ? unit : '')];
+      }
+    }
+    if (n.matches('.mt-vbar-col')) {
+      const t = n.getAttribute('title'); if (t) { n.setAttribute('data-tip', t); n.removeAttribute('title'); }
+      const d = n.getAttribute('data-tip'); return d ? [d] : null;
+    }
+  }
+  return null;
+}
+const tipX = (n) => (n.tagName === 'circle' ? +n.getAttribute('cx') : +n.getAttribute('x') + (+n.getAttribute('width') || 0) / 2);
+/** Nearest bar or point (by x) in a chart; points sharing that x are shown together */
+function svgTip(e, svg) {
+  for (const t of Array.from(svg.querySelectorAll('title'))) { const p = t.parentNode; if (p && p !== svg) { p.setAttribute('data-tip', t.textContent); t.remove(); } }
+  const items = Array.from(svg.querySelectorAll('[data-tip]'));
+  if (!items.length || !svg.getScreenCTM) return null;
+  const pt = svg.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+  const xs = [...new Set(items.map(tipX))].sort((a, b) => a - b);
+  let gap = Infinity; for (let i = 1; i < xs.length; i++) gap = Math.min(gap, xs[i] - xs[i - 1]);
+  let best = null, bd = Infinity;
+  for (const x of xs) { const d = Math.abs(x - loc.x); if (d < bd) { bd = d; best = x; } }
+  if (best == null || bd > Math.max(14, gap === Infinity ? 40 : gap / 2)) return null;
+  const group = items.filter((n) => Math.abs(tipX(n) - best) < 0.5);
+  return { lines: [...new Set(group.map((n) => n.getAttribute('data-tip')))], hi: group };
+}
+/** One floating tooltip for every chart inside root (bars, points, horizontal bars) */
+function addTooltips(root) {
+  if (!root || !root.addEventListener || root._hdTips) return;
+  root._hdTips = true;
+  let lit = [];
+  const unlight = () => { lit.forEach((n) => n.classList.remove('is-tip')); lit = []; };
+  const hide = () => { unlight(); if (TIP_EL) TIP_EL.style.display = 'none'; };
+  root.addEventListener('mousemove', (e) => {
+    const el = e.target;
+    if (!el || !el.closest) return hide();
+    const svg = el.closest('svg.hd-chart, svg.pt-chart, svg.hk-chart');
+    const r = svg && root.contains(svg) ? svgTip(e, svg) : (() => { const l = htmlTip(el, root); return l ? { lines: l, hi: [] } : null; })();
+    if (!r || !r.lines.length) return hide();
+    unlight(); lit = r.hi; lit.forEach((n) => n.classList.add('is-tip'));
+    const t = tipEl(); t.empty();
+    r.lines.forEach((l, i) => t.createDiv({ cls: i ? '' : 'hd-tip-main', text: l }));
+    t.style.display = 'block';
+    const w = t.offsetWidth, h = t.offsetHeight;
+    let x = e.clientX + 14, y = e.clientY + 16;
+    if (x + w > window.innerWidth - 8) x = e.clientX - w - 14;
+    if (y + h > window.innerHeight - 8) y = e.clientY - h - 12;
+    t.style.left = Math.max(8, x) + 'px'; t.style.top = Math.max(8, y) + 'px';
+  });
+  root.addEventListener('mouseleave', hide);
+  root.addEventListener('mousedown', hide);
 }
 
 /* ---------------- Same header buttons, same order, on every dashboard ---------------- */

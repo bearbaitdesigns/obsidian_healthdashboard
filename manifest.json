@@ -1,7 +1,7 @@
 {
   "id": "health-dashboard",
   "name": "Health Dashboard",
-  "version": "1.17.1",
+  "version": "1.18.0",
   "minAppVersion": "1.4.0",
   "description": "Period, migraine, doctor visits, blood pressure, sickness, medication and A1C tracking in one plugin, with a combined dashboard, shared calendar and PDF reports for your doctor.",
   "author": "bearbaitdesigns",
