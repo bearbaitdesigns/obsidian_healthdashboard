@@ -31,6 +31,8 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   console.log('saved days:', JSON.stringify(fm.days), 'pain_max', fm.pain_max, 'symptoms', fm.symptoms);
   assert.deepStrictEqual(fm.days, [{ date: '2026-11-03', pain: 3, symptoms: ['Nausea'] }, { date: '2026-11-04', pain: 5, symptoms: ['Nausea', 'Light sensitivity'] }]);
   assert.strictEqual(fm.pain_max, 5, 'peak includes day 2'); assert(fm.symptoms.includes('Light sensitivity'));
+  assert.strictEqual(fm.pain_avg, 4.3, 'average worked out from days 3, 5, 5'); assert.strictEqual(fm.pain_avg_auto, true);
+  assert(!m.avgPain, 'no average pain question');
   eps = mig.getEpisodes(); const ep = eps.find((e) => e.days.length);
   const MM = PluginClass._migraine;
   assert.deepStrictEqual([MM.epDayPain(ep, '2026-11-03'), MM.epDayPain(ep, '2026-11-04'), MM.epDayPain(ep, '2026-11-05')], [3, 5, 5], 'day 1 keeps its pain, day 3 follows day 2');
@@ -39,7 +41,18 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   // editing the old episode keeps it without a days list
   const eOld = eps.find((e) => !e.days.length);
   const m2 = new MM.EpisodeModal(mig, eOld); m2.open(); await m2.save(); await flush();
-  assert(!('days' in app.__files.get('Migraine Log/Migraine 2026-10-01.md').fm), 'no days added to old notes');
+  const oldFm = app.__files.get('Migraine Log/Migraine 2026-10-01.md').fm;
+  assert(!('days' in oldFm), 'no days added to old notes');
+  assert.strictEqual(oldFm.pain_avg, 3, 'older episode keeps the average entered'); assert(!('pain_avg_auto' in oldFm));
+  // an ongoing new episode: average follows the days, and End now works it out again
+  registry.commands['migraine-tracker:log-migraine'].callback();
+  const mo = Modal.opened[Modal.opened.length - 1];
+  mo.startInput.value = '2026-11-08'; mo.endInput.value = ''; mo.maxPain.set(4); mo.updateDuration();
+  await mo.save(); await flush();
+  const on = mig.getEpisodes().find((e) => !e.end);
+  assert.strictEqual(on.painAvg, 4); assert.strictEqual(on.avgAuto, true);
+  await mig.endEpisode(on); await flush();
+  assert.strictEqual(app.__files.get(on.file.path).fm.pain_avg, 4);
   // resetting a day removes it
   const m3 = new MM.EpisodeModal(mig, ep); m3.open();
   m3.daysBox.querySelectorAll('.mt-day')[1].querySelector('button').click();

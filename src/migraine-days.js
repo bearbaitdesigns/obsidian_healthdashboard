@@ -15,6 +15,20 @@ function epDay(ep, key) {
   return { pain: cur.pain != null ? cur.pain : ep.painMax, symptoms: cur.symptoms, logged: cur.date === key, from: cur.date };
 }
 const epDayPain = (ep, key) => { const v = (ep.days && ep.days.length) ? epDay(ep, key).pain : ep.painMax; return v == null ? ep.painMax || 0 : v; };
+/** Average pain over every day of the episode (each day's own pain, or the day before's when unchanged), to one decimal */
+function autoPainAvg(ep) {
+  const start = startOfDay(ep.start), last = startOfDay(ep.end || new Date());
+  const n = Math.max(1, Math.min(31, spanDays(start, last < start ? start : last)));
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const key = dayKey(addDays(start, i));
+    let p = ep.painMax || 0;
+    for (const d of ep.days || []) if (d.date <= key && d.pain != null) p = d.pain;
+    sum += p;
+  }
+  return Math.round((sum / n) * 10) / 10;
+}
+const asPainAvg = (v) => { const n = Number(v); return Number.isFinite(n) && v !== '' && v != null ? Math.max(0, Math.min(PAIN_MAX, Math.round(n * 10) / 10)) : null; };
 /*@@MODAL@@*/
 /** The "Day by day" section of the episode window */
 EpisodeModal.prototype.renderDays = function () {

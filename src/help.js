@@ -114,6 +114,7 @@ function helpFor(host, key) {
         'Patterns: causes, symptoms, location, relief, migraine type, time of day and day of week.',
       ],
       calc: [
+        'Average pain of an episode = the mean of its daily pain: each day of the migraine counts once, and a day you didn’t change uses the day before. Episodes logged before version 1.19.1 keep the average you entered.',
         'Migraine days = calendar days touched by any episode in the period. Share of days = migraine days divided by days in the period.',
         'Episodes per month = episodes divided by (days in the period / 30.44).',
         'Average length uses ended episodes only. Pain uses your 0–' + pm + ' scale: 0 no pain, 1 very mild, 2 mild, 3 moderate, 4 severe, 5 very severe' + (pm === 10 ? ' (on 0–10, each word covers two points)' : '') + '.',

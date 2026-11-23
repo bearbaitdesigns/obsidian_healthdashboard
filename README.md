@@ -180,7 +180,7 @@ The Symptoms card shows two pain averages: all bleeding days, and the first two 
 
 ## Migraine: pain and symptoms day by day
 
-A migraine episode is one note. For a migraine that lasts more than a day, the episode window has a **Day by day** section with one row per day. Click **Change this day** to set that day's pain and symptoms. A day you don't change keeps the values of the day before, until you change them or the migraine ends; day 1 uses the pain and symptoms set above. The days are saved in the episode note as `days` (date, pain, symptoms). The calendar shades each day by that day's pain, and the episode's peak pain and symptoms include every day. Older episodes without days stay as they are.
+A migraine episode is one note. For a migraine that lasts more than a day, the episode window has a **Day by day** section with one row per day. Click **Change this day** to set that day's pain and symptoms. A day you don't change keeps the values of the day before, until you change them or the migraine ends; day 1 uses the pain and symptoms set above. The days are saved in the episode note as `days` (date, pain, symptoms). The calendar shades each day by that day's pain, and the episode's peak pain and symptoms include every day. You no longer enter an average pain: it is worked out from the pain on each day of the migraine (and again when you end it with **End now**). Episodes logged before keep the average you entered, and older episodes without days stay as they are.
 
 ## Glucose
 
