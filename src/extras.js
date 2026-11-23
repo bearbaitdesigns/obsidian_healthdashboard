@@ -3,10 +3,10 @@
 /* ================================================================== */
 const KK = KitModule;
 const NOTE_ENTRY = 'health-note', MISSED_ENTRY = 'missed-event';
-const NOTE_LABELS = { general: 'General', period: 'Period', migraine: 'Migraine', visits: 'Doctor visits', bp: 'Blood pressure', illness: 'Sickness', meds: 'Medications', a1c: 'A1C' };
+const NOTE_LABELS = { general: 'General', period: 'Period', migraine: 'Migraine', visits: 'Doctor visits', bp: 'Blood pressure', illness: 'Sickness', meds: 'Medications', a1c: 'A1C', glucose: 'Glucose' };
 const MISSED_KEYS = ['period', 'migraine'];
 const MISSED_WORD = { period: ['period', 'periods'], migraine: ['migraine', 'migraines'] };
-const REPORT_TITLES = { period: 'Period', migraine: 'Migraine', visits: 'Doctor visits', bp: 'Blood pressure', illness: 'Sickness', meds: 'Medications', a1c: 'A1C' };
+const REPORT_TITLES = { period: 'Period', migraine: 'Migraine', visits: 'Doctor visits', bp: 'Blood pressure', illness: 'Sickness', meds: 'Medications', a1c: 'A1C', glucose: 'Glucose' };
 
 function parseNote(file, fm) {
   if (!fm || String(fm.entry || '').toLowerCase() !== NOTE_ENTRY) return null;
@@ -444,6 +444,16 @@ function summaryItems(host, key) {
       ['Next test', st.nextDue ? KK.fmtKey(st.nextDue) : '–', ''],
     ];
   }
+  if (key === 'glucose' && host.glucose) {
+    const st = host.glucose.stats('14');
+    if (!st.n) return [['Glucose', 'No readings in the last 14 days', '']];
+    const gs = host.glucose.settings;
+    return [
+      ['Time in range · 14 days', G.fixed(st.share.in), G.fmtRange(gs, st.target) + (st.src === 'meter' ? ' · meter readings' : ' · CGM')],
+      ['Average glucose', host.glucose.fmt(st.mean), st.gmi != null ? 'GMI ' + st.gmi.toFixed(1) + '%' : KK.plural(st.n, 'reading')],
+      ['Time below range', G.fixed(st.share.low + st.share.vlow), KK.plural(st.lows.length, 'low')],
+    ];
+  }
   return [];
 }
 function buildOverviewReport(host, o, contents) {
@@ -507,7 +517,7 @@ function writeCycleLink(R, host) {
 }
 
 /* "Since your last visit": one box per dashboard, two per row, in tab order */
-const SINCE_COLORS = { period: '#b8325a', migraine: '#4a9a2e', bp: '#c0392b', illness: '#e08a2b', meds: '#2c6fbb', a1c: '#7a4fd0' };
+const SINCE_COLORS = { period: '#b8325a', migraine: '#4a9a2e', bp: '#c0392b', illness: '#e08a2b', meds: '#2c6fbb', a1c: '#7a4fd0', glucose: '#a16207' };
 function writeSince(R, host, all, today) {
   const prev = all.filter((v) => !V.isUpcoming(v, today) && v.date <= today).map((v) => v.date).pop();
   const from = prev || KitModule.addDaysKey(today, -90);
@@ -633,6 +643,7 @@ function buildPart(host, key, o) {
   if (key === 'illness') return I.buildReport(host.illness, common);
   if (key === 'meds') return D.buildList(host.meds, common);
   if (key === 'a1c') return A.buildReport(host.a1c, common);
+  if (key === 'glucose') return G.buildReport(host.glucose, Object.assign({}, common, { includeReadings: o.includeLog }));
   return null;
 }
 
@@ -775,5 +786,6 @@ addExtrasAfterRender(B.BPRenderer, (t) => t.el);
 addExtrasAfterRender(I.IllnessRenderer, (t) => t.el);
 addExtrasAfterRender(D.MedsRenderer, (t) => t.el);
 addExtrasAfterRender(A.A1CRenderer, (t) => t.el);
+addExtrasAfterRender(G.GlucoseRenderer, (t) => t.el);
 
 module.exports._extras = { parseNote, parseMissed, whenLabel, missedInRange, mergePdfs, parsePdf, pageCountOf, buildVisitsReport, buildOverviewReport, NoteModal, MissedModal, HealthReportModal };

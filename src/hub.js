@@ -12,6 +12,7 @@ const B = BPModule._internals;
 const I = IllnessModule._internals;
 const D = MedsModule._internals;
 const A = A1CModule._internals;
+const G = GlucoseModule._internals;
 const HUB_VIEW = 'health-dashboard';
 const TABS = [
   { id: 'overview', label: 'Overview', icon: 'layout-dashboard' },
@@ -22,11 +23,12 @@ const TABS = [
   { id: 'illness', label: 'Sickness', icon: 'thermometer' },
   { id: 'meds', label: 'Medications', icon: 'pill' },
   { id: 'a1c', label: 'A1C', icon: 'test-tube' },
+  { id: 'glucose', label: 'Glucose', icon: 'droplets' },
 ];
 const HUB_DEFAULTS = { defaultTab: 'last', lastTab: 'overview', showCycleLink: true, showDisclaimer: true, userName: '', calendarWide: false, overviewLayoutMode: 'free', overviewLayout: {}, notesFolder: 'Health Notes', reportOrder: null, reportSkip: [] };
-const MODULE_KEYS = ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c'];
+const MODULE_KEYS = ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c', 'glucose'];
 const OVERVIEW_KEYS = MODULE_KEYS.concat(['calendar', 'cycle', 'notes']);
-const GENERIC_TABS = { bp: 'Blood pressure', illness: 'Sickness tracking', meds: 'Medications', a1c: 'A1C' };
+const GENERIC_TABS = { bp: 'Blood pressure', illness: 'Sickness tracking', meds: 'Medications', a1c: 'A1C', glucose: 'Glucose' };
 // ICHD-3 menstrual window: day -2 to day +3, day 1 = first day of bleeding (no day 0) => offsets -2..+2
 const WIN_LO = -2, WIN_HI = 2, WIN_DAYS = WIN_HI - WIN_LO + 1;
 
@@ -60,6 +62,8 @@ const MODULES = [
     desc: 'Current medications, schedule, refills, printable medication list and the Medications tab.' },
   { key: 'a1c', id: 'a1c-tracker', name: 'A1C', label: 'A1C', view: A.VIEW_TYPE, Base: A1CModule,
     desc: 'A1C (HbA1c) results, trend, estimated average glucose, test reminders, doctor report and the A1C tab.' },
+  { key: 'glucose', id: 'glucose-tracker', name: 'Glucose', label: 'Glucose', view: G.VIEW_TYPE, Base: GlucoseModule,
+    desc: 'Finger-prick meter readings and CGM data (CSV import), time in range, daily pattern, doctor report and the Glucose tab.' },
 ];
 
 /* sortable:start */
@@ -466,7 +470,13 @@ class HubRenderer {
     const bar = el.createDiv({ cls: 'hd-topbar' });
     const title = bar.createDiv({ cls: 'hd-title' });
     setIcon(title.createSpan({ cls: 'hd-title-icon' }), 'heart-pulse');
-    title.createEl('h2', { text: 'Health dashboard' });
+    const titleText = title.createDiv({ cls: 'hd-title-text' });
+    titleText.createEl('h2', { text: 'Health dashboard' });
+    const who = (host.settings.userName || '').trim();
+    titleText.createDiv({ cls: 'hd-subtitle', text: (who ? who + ' · ' : '') + new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) });
+    const gear = bar.createEl('button', { cls: 'clickable-icon hd-settings-btn', attr: { 'aria-label': 'Health Dashboard settings' } });
+    setIcon(gear, 'settings');
+    gear.onclick = () => { try { host.app.setting.open(); host.app.setting.openTabById(host.manifest.id); } catch (e) { /* settings window unavailable */ } };
     const tabRow = bar.createDiv({ cls: 'hd-tabrow' });
     const tabs = tabRow.createDiv({ cls: 'hd-tabs', attr: { role: 'tablist' } });
     if (!host.tabVisible(this.tab)) this.tab = 'overview';
@@ -590,8 +600,9 @@ class HubRenderer {
       bp: () => hubButton(actions, 'activity', 'Log blood pressure', () => new B.ReadingModal(this.ov.bp).open(), true),
       illness: () => hubButton(actions, 'thermometer', 'Log sickness', () => new I.IllnessModal(this.ov.illness).open(), true),
       a1c: () => hubButton(actions, 'test-tube', 'Log A1C', () => new A.ResultModal(this.ov.a1c).open(), true),
+      glucose: () => hubButton(actions, 'droplets', 'Log glucose', () => new G.ReadingModal(this.ov.glucose).open(), true),
     };
-    for (const k of host.settings.overviewOrder) if (this.ov[k] && quick[k]) quick[k]();
+    for (const k of host.settings.tabOrder) if (this.ov[k] && quick[k]) quick[k]();
 
     for (const ep of eps.filter((e) => !e.end)) {
       const b = panel.createDiv({ cls: 'hd-banner' });
@@ -602,48 +613,27 @@ class HubRenderer {
       b.createEl('button', { text: 'Edit' }).onclick = () => new M.EpisodeModal(mig, ep).open();
     }
 
-    // One board: summary cards, the calendar and the cycle chart, all draggable into one saved order
-    const tools = host.settings.overviewLayoutMode === 'grid' ? null : panel.createDiv({ cls: 'hd-board-tools' });
-    const board = panel.createDiv({ cls: 'hd-board' });
+    // Fixed layout: calendar (and the cycle chart under it) on the left, tracker summaries on the right in tab order
+    const home = panel.createDiv({ cls: 'hd-home' });
+    const left = home.createDiv({ cls: 'hd-home-left' });
+    const right = home.createDiv({ cls: 'hd-home-right' });
+    const cards = right.createDiv({ cls: 'hd-home-cards' });
     const visits = vis ? vis.getVisits() : [];
     const blocks = {
-      period: () => this.periodSummary(board, a), migraine: () => this.migraineSummary(board, eps, now), visits: () => this.visitsSummary(board, visits),
-      bp: () => this.bpSummary(board), illness: () => this.illnessSummary(board), meds: () => this.medsSummary(board), a1c: () => this.a1cSummary(board),
-      calendar: () => this.renderCalendar(board, a, eps, now, today, visits),
-      cycle: () => this.renderCycleLink(board, a, eps),
-      notes: () => host.renderNotes(board, 'general', { key: 'notes', cls: 'hd-card hd-sortable hd-span2' }),
+      period: () => this.periodSummary(cards, a), migraine: () => this.migraineSummary(cards, eps, now), visits: () => this.visitsSummary(cards, visits),
+      bp: () => this.bpSummary(cards), illness: () => this.illnessSummary(cards), meds: () => this.medsSummary(cards), a1c: () => this.a1cSummary(cards),
+      glucose: () => this.glucoseSummary(cards),
     };
-    const shown = {
-      calendar: !!(per || mig || vis || this.ov.illness),
-      cycle: !!(host.settings.showCycleLink && per && mig),
-      notes: true,
-    };
-    for (const k of host.settings.overviewOrder) if ((MODULE_KEYS.includes(k) ? onOv(k) : shown[k]) && blocks[k]) blocks[k]();
-    if (host.settings.overviewLayoutMode === 'grid') {
-      makeSortable(board, { itemClass: 'hd-sortable', onSort: (keys) => host.setVisibleOrder('overviewOrder', keys) });
-      return;
-    }
-    // Free layout: every block has its own pixel position and size
-    const fb = freeBoard(board, {
-      itemClass: 'hd-sortable',
-      load: () => host.settings.overviewLayout,
-      save: (layout, order) => {
-        host.settings.overviewLayout = layout;
-        if (order) host.setVisibleOrder('overviewOrder', order, false); // quick-log buttons and narrow screens follow the reading order
-        else host.saveHub();
-      },
-    });
-    // Narrow screens stack the blocks; there they can still be dragged into a new order
-    makeSortable(board, { itemClass: 'hd-sortable', enabled: () => board.classList.contains('is-stacked'), onSort: (keys) => host.setVisibleOrder('overviewOrder', keys) });
-    tools.createDiv({ cls: 'hd-board-hint', text: 'Drag blocks anywhere \u00b7 drag a corner to resize' });
-    hubButton(tools, 'layout-grid', 'Tidy up', () => fb.tidy()).addClass('hd-small-btn');
-    hubButton(tools, 'rotate-ccw', 'Reset layout', () => fb.reset()).addClass('hd-small-btn');
+    for (const k of host.settings.tabOrder) if (onOv(k) && blocks[k]) blocks[k]();
+    if (per || mig || vis || this.ov.illness) this.renderCalendar(left, a, eps, now, today, visits);
+    if (host.settings.showCycleLink && per && mig) this.renderCycleLink(left, a, eps);
+    host.renderNotes(right, 'general', { cls: 'hd-card' });
+    if (!left.children.length) home.addClass('is-single');
   }
 
   summaryCard(parent, cls, icon, title, tab) {
-    const card = parent.createDiv({ cls: 'hd-card hd-sum hd-sortable ' + cls, attr: { 'data-key': tab } });
+    const card = parent.createDiv({ cls: 'hd-card hd-sum ' + cls, attr: { 'data-key': tab } });
     const head = card.createDiv({ cls: 'hd-sum-head' });
-    setIcon(head.createSpan({ cls: 'hd-grip', attr: { title: 'Drag to reorder', 'aria-hidden': 'true' } }), 'grip-vertical');
     setIcon(head.createSpan({ cls: 'hd-sum-icon' }), icon);
     head.createEl('h3', { text: title });
     head.createDiv({ cls: 'hd-spacer' });
@@ -766,15 +756,29 @@ class HubRenderer {
     stat('Next test', !st.nextDue ? '–' : st.nextDue < tk ? 'Overdue' : V.relDays(st.nextDue, tk).replace(/^./, (x) => x.toUpperCase()), st.nextDue ? (st.nextDue < tk ? 'Was due ' : '') + V.fmtKey(st.nextDue) : '', st.nextDue && st.nextDue <= tk ? 'is-warn' : '');
   }
 
+  glucoseSummary(parent) {
+    const gl = this.ov.glucose;
+    const { card, stat } = this.summaryCard(parent, 'is-glucose', 'droplets', 'Glucose', 'glucose');
+    if (!gl) { card.createEl('p', { cls: 'hd-muted', text: host_conflictText('Glucose', 'glucose-tracker') }); return; }
+    const st = gl.stats('14');
+    if (!st.latest) { stat('Latest', '–', 'Log a reading or import CGM data'); return; }
+    const b = G.bandOf(st.latest.mg, st.target);
+    stat('Latest', gl.fmt(st.latest.mg), b.label + ' · ' + V.fmtKey(st.latest.date), b.id === 'in' ? 'is-accent' : 'is-warn');
+    if (st.n) {
+      stat('Time in range · 14 days', G.fixed(st.share.in), G.fmtRange(gl.settings, st.target) + (st.src === 'meter' ? ' · meter readings' : ''), st.share.in < G.GOALS.in ? 'is-warn' : '');
+      stat('Average · 14 days', gl.fmt(st.mean), st.gmi != null ? 'GMI ' + st.gmi.toFixed(1) + '%' : KitModule.plural(st.n, 'reading'));
+      stat('Lows · 14 days', String(st.lows.length), 'Below range ' + G.fixed(st.share.low + st.share.vlow), st.lows.length ? 'is-warn' : '');
+    } else stat('Last 14 days', 'No readings', '');
+  }
+
   /* Calendar with periods, migraines and doctor visits */
   renderCalendar(grid, a, eps, now, today, visits) {
     const host = this.host, per = this.ov.period, mig = this.ov.migraine, app = host.app;
-    const box = grid.createDiv({ cls: 'hd-card hd-calendar hd-sortable hd-span2' + (host.settings.calendarWide ? ' is-wide' : ''), attr: { 'data-key': 'calendar' } });
+    const box = grid.createDiv({ cls: 'hd-card hd-calendar', attr: { 'data-key': 'calendar' } });
     const base = new Date(Date.UTC(new Date(today * 86400000).getUTCFullYear(), new Date(today * 86400000).getUTCMonth() + this.monthOffset, 1));
     const y = base.getUTCFullYear(), m = base.getUTCMonth();
 
     const nav = box.createDiv({ cls: 'hd-cal-nav' });
-    setIcon(nav.createSpan({ cls: 'hd-grip', attr: { title: 'Drag to move the calendar', 'aria-hidden': 'true' } }), 'grip-vertical');
     const prev = nav.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Previous month' } });
     setIcon(prev, 'chevron-left');
     prev.onclick = () => { this.monthOffset--; this.render(); };
@@ -784,9 +788,6 @@ class HubRenderer {
     const next = nav.createEl('button', { cls: 'clickable-icon', attr: { 'aria-label': 'Next month' } });
     setIcon(next, 'chevron-right');
     next.onclick = () => { this.monthOffset++; this.render(); };
-    const wide = nav.createEl('button', { cls: 'clickable-icon hd-cal-wide', attr: { 'aria-label': host.settings.calendarWide ? 'Half width' : 'Full width' } });
-    setIcon(wide, host.settings.calendarWide ? 'minimize-2' : 'maximize-2');
-    wide.onclick = async () => { host.setCalendarWide(!host.settings.calendarWide); await host.saveHub(); this.render(); };
 
     // day number -> migraine episodes touching it
     const migDays = new Map();
@@ -837,7 +838,8 @@ class HubRenderer {
       const dayEps = migDays.get(d) || [];
       if (dayEps.length) {
         nMig++;
-        const peak = Math.max(...dayEps.map((x) => x.painMax || 0));
+        const dk = P.fromDayNum(d);
+        const peak = Math.max(...dayEps.map((x) => M.epDayPain(x, dk) || 0));
         const mark = cell.createSpan({ cls: 'hd-mig-mark' });
         const t = peak ? peak / painMax : 0.5;
         mark.style.opacity = String(0.35 + 0.65 * t);
@@ -913,9 +915,8 @@ class HubRenderer {
 
   /* Migraine starts relative to the first day of a period */
   renderCycleLink(grid, a, eps) {
-    const box = grid.createDiv({ cls: 'hd-card hd-link-card hd-sortable hd-span2', attr: { 'data-key': 'cycle' } });
+    const box = grid.createDiv({ cls: 'hd-card hd-link-card', attr: { 'data-key': 'cycle' } });
     const h4 = box.createEl('h4', { cls: 'hd-block-head' });
-    setIcon(h4.createSpan({ cls: 'hd-grip', attr: { title: 'Drag to move this chart', 'aria-hidden': 'true' } }), 'grip-vertical');
     h4.createSpan({ text: 'Migraines and your cycle' });
     if (!this.ov.period || !this.ov.migraine) { box.createEl('p', { cls: 'hd-muted', text: 'Needs both period and migraine tracking.' }); return; }
     const starts = a.periods.map((p) => p.start);
@@ -1082,6 +1083,9 @@ SELECTORS.push(
   { group: 'meds', key: 'stopReasons', label: 'Reasons for stopping', fm: 'stop_reason', kind: 'single', get: (e) => [e.stopReason] },
   { group: 'a1c', key: 'testTypes', label: 'Types of test', fm: 'test_type', kind: 'single', get: (e) => [e.testType] },
   { group: 'a1c', key: 'labs', label: 'Labs and clinics', fm: 'lab', kind: 'single', get: (e) => [e.lab] },
+  { group: 'glucose', key: 'contexts', label: 'When (fasting, after meal…)', fm: 'context', kind: 'single', get: (e) => [e.context] },
+  { group: 'glucose', key: 'devices', label: 'Devices', fm: 'device', kind: 'single', get: (e) => [e.device] },
+  { group: 'glucose', key: 'medications', label: 'Medications and insulin', fm: 'medications', kind: 'list', get: (e) => e.medications || [] },
 );
 // Display names with a fixed set of levels (stored values never change, only what you see)
 const FLOW_KEYS = ['none', 'spotting', 'light', 'medium', 'heavy'];
@@ -1120,7 +1124,7 @@ class HubSettingTab extends PluginSettingTab {
     el.addClass('hd-settings');
 
     new Setting(el).setName('You').setHeading();
-    new Setting(el).setName('Your name').setDesc('Printed on every PDF report for your doctor: period, migraine, blood pressure and A1C reports and the medication list.')
+    new Setting(el).setName('Your name').setDesc('Printed on every PDF report for your doctor: period, migraine, blood pressure, A1C and glucose reports and the medication list.')
       .addText((t) => {
         t.setPlaceholder('e.g. Anna Jónsdóttir').setValue(h.settings.userName || '').onChange(async (v) => { await h.setUserName(v); });
         t.inputEl.addClass('hd-name-input');
@@ -1130,32 +1134,41 @@ class HubSettingTab extends PluginSettingTab {
       .addText((t) => t.setPlaceholder('Health Notes').setValue(h.settings.notesFolder || 'Health Notes').onChange(async (v) => { h.settings.notesFolder = v.trim() || 'Health Notes'; await h.saveHub(); }));
 
     new Setting(el).setName('Dashboards').setHeading();
-    el.createEl('p', { cls: 'setting-item-description hd-set-intro', text: 'Turn each tracker on or off. When a tracker is off, its tab, dashboard, commands, ribbon icon, status bar item and settings are hidden. Your notes stay in your vault, and everything comes back when you turn it on again.' });
+    el.createEl('p', { cls: 'setting-item-description hd-set-intro', text: 'Choose which dashboards appear as tabs, and drag a row by its handle to change their order. Overview is always first; its summary cards and quick log buttons follow this order too. When a dashboard is off, its tab, commands, ribbon icon, status bar item and settings are hidden. Your notes stay in your vault, and everything comes back when you turn it on again.' });
     const byOrder = (order) => order.map((k) => MODULES.find((d) => d.key === k)).filter(Boolean);
-    for (const def of byOrder(h.settings.tabOrder)) {
-      const st = new Setting(el).setName(def.label).setDesc(def.desc);
+    const order = h.settings.tabOrder;
+    const list = el.createDiv({ cls: 'hd-dash-list' });
+    for (const def of byOrder(order)) {
+      const st = new Setting(list).setName(def.label).setDesc(def.desc);
+      st.settingEl.addClass('hd-dash-row');
+      st.settingEl.setAttr('data-key', def.key);
+      const grip = st.settingEl.createSpan({ cls: 'hd-dash-grip', attr: { 'aria-hidden': 'true', title: 'Drag to reorder' } });
+      setIcon(grip, 'grip-vertical');
+      st.settingEl.prepend(grip);
       if (h.isActive(def.key) && !h[def.key]) st.setDesc(def.desc + ' Paused: the separate ' + def.name + ' plugin is still turned on.');
-      st.addToggle((t) => t.setValue(h.isActive(def.key)).onChange(async (v) => {
+      st.addToggle((t) => t.setValue(h.isActive(def.key)).setTooltip('Show this dashboard').onChange(async (v) => {
         h.settings.active[def.key] = v;
         await h.saveHub();
         if (v) await h.enableModule(def); else h.disableModule(def);
         this.display();
       }));
     }
-
-    if (h.settings.tabOrder.filter((k) => h.isActive(k)).length > 1) {
-      new Setting(el).setName('Tab order').setDesc('Drag the tabs on the Health dashboard to reorder them. Overview is always first.')
-        .addButton((b) => b.setButtonText('Reset to default order').onClick(async () => { h.settings.tabOrder = MODULE_KEYS.slice(); await h.saveHub(); h.refreshHub(); }));
-    }
+    makeSortable(list, { itemClass: 'hd-dash-row', onSort: async (keys) => {
+      const known = keys.filter((k) => MODULE_KEYS.includes(k));
+      h.settings.tabOrder = known.concat(h.settings.tabOrder.filter((k) => !known.includes(k)));
+      await h.saveHub(); h.refreshHub(); this.display();
+    } });
+    new Setting(el).setName('Reset the order').setDesc('Put the dashboards back in the default order. You can also drag the tabs on the Health dashboard.')
+      .addButton((b) => b.setButtonText('Reset to default order').onClick(async () => { h.settings.tabOrder = MODULE_KEYS.slice(); await h.saveHub(); h.refreshHub(); this.display(); }));
 
     new Setting(el).setName('Overview').setHeading();
-    el.createEl('p', { cls: 'setting-item-description hd-set-intro', text: 'Choose which trackers appear on the Overview. To change the order, drag the cards, the calendar and the cycle chart on the Overview itself; the quick log buttons follow the card order.' });
+    el.createEl('p', { cls: 'setting-item-description hd-set-intro', text: 'The Overview shows the calendar on the left (with "Migraines and your cycle" under it when both are on) and a summary card for each dashboard on the right, in the order above. Choose which dashboards get a summary card.' });
     new Setting(el).setName('Show the disclaimer').setDesc('A short note at the top of the Overview: Health Dashboard is for your own records, not medical advice. PDF reports always include it.')
       .addToggle((t) => t.setValue(h.settings.showDisclaimer !== false).onChange(async (v) => { h.settings.showDisclaimer = v; await h.saveHub(); h.refreshHub(); }));
-    const activeOv = h.settings.overviewOrder.filter((k) => h.isActive(k));
-    if (!activeOv.length) el.createEl('p', { cls: 'setting-item-description', text: 'Turn on at least one tracker above.' });
+    const activeOv = order.filter((k) => h.isActive(k));
+    if (!activeOv.length) el.createEl('p', { cls: 'setting-item-description', text: 'Turn on at least one dashboard above.' });
     for (const def of byOrder(activeOv)) {
-      const st = new Setting(el).setName('Show ' + (/^[A-Z0-9]+$/.test(def.label) ? def.label : def.label.toLowerCase())).setDesc('Summary card, quick log buttons and calendar markings on the Overview.');
+      const st = new Setting(el).setName('Show ' + (/^[A-Z0-9]+$/.test(def.label) ? def.label : def.label.toLowerCase())).setDesc('Summary card, quick log button and calendar markings on the Overview.');
       st.addToggle((t) => t.setValue(!!h.settings.overview[def.key]).onChange(async (v) => {
         h.settings.overview[def.key] = v;
         await h.saveHub();
@@ -1163,26 +1176,11 @@ class HubSettingTab extends PluginSettingTab {
         this.display();
       }));
     }
-    if (activeOv.length > 1) {
-      new Setting(el).setName('Overview order').setDesc('Start again from the tab order, or from the default order. The calendar and cycle chart go after the cards.')
-        .addButton((b) => b.setButtonText('Use the tab order').onClick(async () => { h.settings.overviewOrder = h.settings.tabOrder.slice(); h.normalizeSettings(); await h.saveHub(); h.refreshHub(); }))
-        .addButton((b) => b.setButtonText('Reset to default order').onClick(async () => { h.settings.overviewOrder = OVERVIEW_KEYS.slice(); await h.saveHub(); h.refreshHub(); }));
-    }
     if (h.isActive('period') && h.isActive('migraine')) {
       const both = h.settings.overview.period && h.settings.overview.migraine;
       new Setting(el).setName('Show "Migraines and your cycle"')
-        .setDesc(both ? 'Chart when migraines start relative to the first day of your period.' : 'Needs both period and migraine tracking shown on the Overview.')
+        .setDesc(both ? 'Chart under the calendar: when migraines start relative to the first day of your period.' : 'Needs both period and migraine tracking shown on the Overview.')
         .addToggle((t) => t.setValue(h.settings.showCycleLink).setDisabled(!both).onChange(async (v) => { h.settings.showCycleLink = v; await h.saveHub(); h.refreshHub(); }));
-    }
-    new Setting(el).setName('Calendar takes the full width').setDesc('Show the Overview calendar across the whole row, with bigger days. You can also switch this with the button in the calendar\u2019s corner.')
-      .addToggle((t) => t.setValue(!!h.settings.calendarWide).onChange(async (v) => { h.setCalendarWide(v); await h.saveHub(); h.refreshHub(); }));
-    new Setting(el).setName('Overview layout')
-      .setDesc('Free: place and size each block anywhere by dragging it or its corner. Grid: blocks snap into columns and you drag them into an order.')
-      .addDropdown((d) => d.addOptions({ free: 'Free (place anywhere)', grid: 'Grid (columns)' }).setValue(h.settings.overviewLayoutMode === 'grid' ? 'grid' : 'free')
-        .onChange(async (v) => { h.settings.overviewLayoutMode = v; await h.saveHub(); h.refreshHub(); this.display(); }));
-    if (h.settings.overviewLayoutMode !== 'grid') {
-      new Setting(el).setName('Reset the Overview layout').setDesc('Forget where you placed and how you sized the blocks, and lay them out in columns again.')
-        .addButton((b) => b.setButtonText('Reset layout').onClick(async () => { h.settings.overviewLayout = {}; await h.saveHub(); h.refreshHub(); }));
     }
     const tabOpts = { last: 'Last tab used', overview: 'Overview' };
     for (const t of h.orderedTabs()) if (t.id !== 'overview') tabOpts[t.id] = t.label;
@@ -1210,7 +1208,7 @@ class HubSettingTab extends PluginSettingTab {
       el.createEl('h4', { cls: 'hd-set-group', text: 'Migraine' });
       for (const sel of SELECTORS.filter((x) => x.group === 'migraine')) this.listBlock(el, sel);
     }
-    for (const [g, label] of [['visits', 'Doctor visits'], ['bp', 'Blood pressure'], ['illness', 'Sickness and general health'], ['meds', 'Medications'], ['a1c', 'A1C']]) {
+    for (const [g, label] of [['visits', 'Doctor visits'], ['bp', 'Blood pressure'], ['illness', 'Sickness and general health'], ['meds', 'Medications'], ['a1c', 'A1C'], ['glucose', 'Glucose']]) {
       if (!h[g]) continue;
       el.createEl('h4', { cls: 'hd-set-group', text: label });
       for (const sel of SELECTORS.filter((x) => x.group === g)) this.listBlock(el, sel);
@@ -1219,12 +1217,12 @@ class HubSettingTab extends PluginSettingTab {
   }
 
   module(sel) { return this.host[sel.group]; }
-  defaults(sel) { return ({ period: P, migraine: M, visits: V, bp: B, illness: I, meds: D, a1c: A })[sel.group].DEFAULT_SETTINGS[sel.key] || []; }
+  defaults(sel) { return ({ period: P, migraine: M, visits: V, bp: B, illness: I, meds: D, a1c: A, glucose: G })[sel.group].DEFAULT_SETTINGS[sel.key] || []; }
   records(group) {
     const h = this.host;
     if (group === 'period') return h.period ? h.period.getEntries() : [];
     if (group === 'visits') return h.visits ? h.visits.getVisits() : [];
-    if (GENERIC_TABS[group]) return h[group] ? h[group].getRecords().filter((r) => !r.kind || r.kind === 'illness') : [];
+    if (GENERIC_TABS[group]) return h[group] ? h[group].getRecords().filter((r) => !r.kind || r.kind === 'illness' || r.kind === 'meter') : [];
     return h.migraine ? h.migraine.getEpisodes() : [];
   }
   computeUsage() {
@@ -1346,9 +1344,14 @@ class HubSettingTab extends PluginSettingTab {
   async renameInNotes(sel, oldV, newV) {
     const fmApi = this.app.fileManager;
     let done = 0;
+    const seen = new Set();
     for (const r of this.records(sel.group)) {
       if (!sel.get(r).some((x) => x && sameText(x, oldV, sel.ci))) continue;
-      await fmApi.processFrontMatter(r.file, (fm) => {
+      if (!r.file || seen.has(r.file.path)) continue;
+      seen.add(r.file.path);
+      await fmApi.processFrontMatter(r.file, (top) => {
+        // Period notes and migraine episodes keep per-day values in a days list
+        for (const fm of [top].concat(Array.isArray(top.days) ? top.days.filter((d) => d && typeof d === 'object') : []))
         for (const field of [].concat(sel.fm)) {
           const cur = fm[field];
           if (cur === undefined) continue;
@@ -1579,7 +1582,7 @@ class HealthDashboardPlugin extends Plugin {
       if (def.key === 'visits') mod.sinceSummary = (fromKey, toKey) => this.sinceSummary(fromKey, toKey);
       if (def.key === 'visits') mod.sinceGroups = (fromKey, toKey) => this.sinceGroups(fromKey, toKey);
       // Cross-tracker helpers: current medications appear as choices; doctors from visits as prescribers
-      if (def.key === 'bp' || def.key === 'a1c') mod.currentMeds = () => (this.meds ? this.meds.currentRows() : []);
+      if (def.key === 'bp' || def.key === 'a1c' || def.key === 'glucose') mod.currentMeds = () => (this.meds ? this.meds.currentRows() : []);
       if (def.key === 'meds' || def.key === 'a1c') mod.prescriberOptions = () => (this.visits ? [...new Set(this.visits.getVisits().map((v) => v.doctor).filter(Boolean).concat(this.visits.settings.doctors))] : []);
     }
     // Notes and records without an exact date at the end of each dashboard, and in its PDF report
@@ -1630,6 +1633,7 @@ class HealthDashboardPlugin extends Plugin {
       // without a heading, say which tracker a line is about
       if (g.key === 'bp') return ['Blood pressure averaged ' + g.lines[0].replace(/^Average /, '') + (g.lines[1] ? '; ' + g.lines[1][0].toLowerCase() + g.lines[1].slice(1) : '')];
       if (g.key === 'a1c') return g.lines.map((l) => 'A1C ' + l);
+      if (g.key === 'glucose') return g.lines.map((l) => 'Glucose: ' + l);
       return g.lines;
     });
   }
@@ -1698,6 +1702,16 @@ class HealthDashboardPlugin extends Plugin {
       }
       put('a1c', lines, 'No new results');
     }
+    if (this.glucose) {
+      const lines = [];
+      const st = G.computeStats(this.glucose.getRecords(), this.glucose.settings, KitModule.addDaysKey(fromKey, 1), toKey);
+      if (st.n) {
+        lines.push('Time in range ' + G.fixed(st.share.in) + ' (' + G.fmtRange(this.glucose.settings, st.target) + ')' + (st.src === 'cgm' ? ' from ' + KitModule.plural(st.cgmDays, 'day') + ' of CGM data' : ' from ' + KitModule.plural(st.n, 'meter reading')));
+        lines.push('Average ' + this.glucose.fmt(st.mean) + (st.gmi != null ? ', GMI ' + st.gmi.toFixed(1) + '%' : ''));
+        if (st.lows.length) lines.push(KitModule.plural(st.lows.length, 'low') + ', lowest ' + this.glucose.fmt(Math.min(...st.lows.map((e) => e.nadir))));
+      }
+      put('glucose', lines, 'No readings');
+    }
     return this.orderedTabs().map((t) => t.id).filter((k) => groups[k])
       .map((k) => { const t = TABS.find((x) => x.id === k); return Object.assign({ key: k, label: t.label, icon: t.icon }, groups[k]); });
   }
@@ -1745,3 +1759,6 @@ module.exports._bp = B;
 module.exports._illness = I;
 module.exports._meds = D;
 module.exports._a1c = A;
+module.exports._migraine = M;
+module.exports._period = P;
+module.exports._glucose = G;

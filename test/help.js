@@ -2,7 +2,7 @@
 require('./clock');
 const assert = require('assert'); const path = require('path'); const fs = require('fs');
 const mock = require('./mock'); const { registry, makeApp } = mock;
-const PluginClass = require(path.resolve(process.argv[2] || 'dist/main.js'));
+const PluginClass = require(path.resolve(process.argv[2] || 'health-dashboard/main.js'));
 const { seed } = require('./run-seed'); const { seedNew } = require('./seed-new');
 const flush = () => new Promise((r) => setTimeout(r, 400));
 const text = (el) => (el.tagName === '#TEXT' ? el._text : (el._text || '') + ' ' + el.children.map(text).join(' ')).replace(/\s+/g, ' ');

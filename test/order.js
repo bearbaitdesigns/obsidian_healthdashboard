@@ -9,56 +9,51 @@ const boot = async (app) => { reset(); const h = new PluginClass(app, { id: 'hea
   const app = makeApp(); await seed(app); await seedNew(app);
   const host = await boot(app);
   const hub = () => registry.settingTabs.find((t) => t.plugin === host);
-  const rows = () => { const t = hub(); t.containerEl.__settings = []; t.display(); return t.containerEl.__settings; };
+  const show = () => { const t = hub(); t.containerEl.__settings = []; t.display(); return t; };
   await registry.commands['health-dashboard:open-dashboard'].callback();
   const root = app.workspace.getLeavesOfType('health-dashboard')[0].view.contentEl;
-  const tabs = () => root.querySelectorAll('.hd-tab').map((b) => b.textContent);
-  const board = () => root.querySelector('.hd-board').children.map((c) => c.attrs['data-key']);
+  const tabs = () => root.querySelectorAll('.hd-tab').map((b) => b.attrs['data-key']);
+  const cards = () => root.querySelectorAll('.hd-sum').map((c) => c.attrs['data-key']);
   root.querySelectorAll('.hd-tab')[0].click();
-  console.log('default board:', board().join(', '));
-  assert.deepStrictEqual(board(), ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c', 'calendar', 'cycle', 'notes']);
-  assert(root.querySelector('.hd-board').children.every((c) => c.cls.has('hd-sortable')), 'every block is draggable');
-  assert(root.querySelector('.hd-calendar').querySelector('.hd-grip') && root.querySelector('.hd-link-card').querySelector('.hd-grip'), 'grips on calendar and chart');
 
-  // no up/down arrows anywhere in Health Dashboard settings
-  const all = rows();
-  const icons = all.flatMap((r) => r.controls.map((c) => c.icon)).filter(Boolean);
-  assert(!icons.includes('arrow-up') && !icons.includes('arrow-down'), 'no arrows: ' + icons);
-  assert(!all.some((r) => /^\d+\. /.test(r.name || '')), 'no numbered order rows');
-  console.log('order-related settings:', all.filter((r) => /order|Show /i.test(r.name || '')).map((r) => r.name).join(' | '));
+  // Fixed Overview: calendar then cycle chart on the left; cards in tab order on the right; nothing draggable
+  const left = root.querySelector('.hd-home-left'), right = root.querySelector('.hd-home-right');
+  assert(left && right, 'two columns');
+  assert.deepStrictEqual(left.children.map((c) => c.attrs['data-key']), ['calendar', 'cycle'], 'calendar, then the cycle chart below it');
+  assert.deepStrictEqual(cards(), host.settings.tabOrder.filter((k) => host.settings.overview[k]));
+  assert(!root.querySelector('.hd-grip') && !root.querySelector('.hd-board') && !root.querySelector('.hd-cal-wide'), 'no drag handles, board or width toggle');
+  assert(right.querySelector('.hd-x-notes'), 'notes under the cards');
+  console.log('overview cards:', cards().join(', '));
 
-  // drag the calendar to the top, the cycle chart after the period card
-  await host.setVisibleOrder('overviewOrder', ['calendar', 'period', 'cycle', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c']); await flush();
-  console.log('board after dragging:', board().join(', '));
-  assert.deepStrictEqual(board().slice(0, 3), ['calendar', 'period', 'cycle']);
-  assert.strictEqual(root.querySelector('.hd-actions').children[0].textContent, 'Log period day', 'quick buttons ignore non-tracker blocks');
-  // hiding the cycle chart keeps its slot
-  host.settings.showCycleLink = false; host.refreshHub(); await flush();
-  assert.deepStrictEqual(board().slice(0, 2), ['calendar', 'period']);
-  await host.setVisibleOrder('overviewOrder', ['period', 'calendar', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c']); await flush();
-  assert.deepStrictEqual(host.settings.overviewOrder.slice(0, 3), ['period', 'calendar', 'cycle'], 'hidden chart kept its place');
-  host.settings.showCycleLink = true; host.refreshHub(); await flush();
+  // Cycle chart only when both period and migraine are on the Overview
+  host.settings.overview.migraine = false; host.refreshHub(); await flush();
+  assert.deepStrictEqual(root.querySelector('.hd-home-left').children.map((c) => c.attrs['data-key']), ['calendar']);
+  host.settings.overview.migraine = true; host.refreshHub(); await flush();
 
-  // tabs dragged; reset buttons in settings
-  await host.setVisibleOrder('tabOrder', ['a1c', 'period', 'migraine', 'visits', 'bp', 'illness', 'meds']); await flush();
-  assert.deepStrictEqual(tabs().slice(0, 3), ['Overview', 'A1C', 'Period']);
-  const dd = rows().find((x) => x.name === 'Open the dashboard on').controls[0];
+  // Settings: one draggable row per dashboard with a toggle; dragging changes the tabs, cards and quick buttons
+  let t = show();
+  const list = t.containerEl.querySelector('.hd-dash-list');
+  assert(list && list.listeners.pointerdown, 'dashboard rows can be dragged');
+  assert.deepStrictEqual(list.children.map((r) => r.attrs['data-key']), host.settings.tabOrder);
+  assert(list.children.every((r) => r.querySelector('.hd-dash-grip')), 'grip on every row');
+  assert(list.__settings.every((r) => r.controls.length === 1), 'each row has its on/off toggle');
+  await host.setVisibleOrder('tabOrder', ['a1c', 'period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'glucose']); await flush();
+  assert.deepStrictEqual(tabs().slice(0, 3), ['overview', 'a1c', 'period']);
+  root.querySelectorAll('.hd-tab')[0].click(); await flush();
+  assert.strictEqual(cards()[0], 'a1c', 'cards follow the tab order');
+  assert.strictEqual(root.querySelector('.hd-actions').children[0].textContent, 'Log A1C', 'quick buttons follow the tab order');
+  t = show();
+  assert.strictEqual(t.containerEl.querySelector('.hd-dash-list').children[0].attrs['data-key'], 'a1c', 'settings list follows');
+  const dd = t.containerEl.__settings.find((x) => x.name === 'Open the dashboard on').controls[0];
   assert.deepStrictEqual(Object.keys(dd.options).slice(0, 3), ['last', 'overview', 'a1c'], 'default-tab dropdown follows tab order');
-  await rows().find((x) => x.name === 'Overview order').controls.find((c) => c.text === 'Use the tab order').click(); await flush();
-  console.log('after "Use the tab order":', host.settings.overviewOrder.join(', '));
-  assert.deepStrictEqual(host.settings.overviewOrder, ['a1c', 'period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'calendar', 'cycle', 'notes']);
-  await rows().find((x) => x.name === 'Overview order').controls.find((c) => c.text === 'Reset to default order').click(); await flush();
-  assert.deepStrictEqual(board(), ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c', 'calendar', 'cycle', 'notes']);
-  await rows().find((x) => x.name === 'Tab order').controls.find((c) => c.text === 'Reset to default order').click(); await flush();
-  assert.deepStrictEqual(host.settings.tabOrder, ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c']);
-
-  // an older saved order (trackers only) gets the calendar and chart added at the end; junk removed
-  host.unload();
-  app.__pluginData['health-dashboard'].hub.overviewOrder = ['bp', 'a1c', 'nonsense', 'bp'];
-  const h2 = await boot(app);
-  console.log('restored overview order:', h2.settings.overviewOrder.join(', '));
-  assert.deepStrictEqual(h2.settings.overviewOrder.slice(0, 2), ['bp', 'a1c']);
-  assert.deepStrictEqual(h2.settings.overviewOrder.slice(-3), ['calendar', 'cycle', 'notes']);
-  assert.strictEqual(h2.settings.overviewOrder.length, 10);
+  // Turning a dashboard off from its row hides the tab
+  const bpRow = t.containerEl.querySelector('.hd-dash-list').__settings.find((r) => r.name === 'Blood pressure');
+  await bpRow.controls[0].handler(false); await flush();
+  assert(!tabs().includes('bp'), 'tab hidden');
+  t = show();
+  await t.containerEl.querySelector('.hd-dash-list').__settings.find((r) => r.name === 'Blood pressure').controls[0].handler(true); await flush();
+  assert(tabs().includes('bp'), 'tab back');
+  await show().containerEl.__settings.find((x) => x.name === 'Reset the order').controls[0].click(); await flush();
+  assert.deepStrictEqual(host.settings.tabOrder, ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c', 'glucose']);
   console.log('ORDER OK'); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

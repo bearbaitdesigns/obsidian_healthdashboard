@@ -1,7 +1,7 @@
 // Dashboard links in notes: block, inline, protocol handler, settings, tab fallback
 const assert = require('assert'); const path = require('path');
 const { registry, makeApp, El } = require('./mock');
-const PluginClass = require(path.resolve(process.argv[2] || 'dist/main.js'));
+const PluginClass = require(path.resolve(process.argv[2] || 'health-dashboard/main.js'));
 const K = PluginClass._link;
 
 (async () => {

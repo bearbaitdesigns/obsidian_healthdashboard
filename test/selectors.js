@@ -12,7 +12,7 @@ const fire = (el, t, ev) => (el.listeners[t] || []).forEach((f) => f(ev || { key
   const blocks = () => tab.containerEl.querySelectorAll('.hd-sel');
   const names = blocks().map((b) => b.querySelector('.hd-sel-name').textContent);
   console.log('blocks:', names.join(' | '));
-  assert.strictEqual(names.length, 2 + 2 + 9 + 7 + 4 + 4 + 8 + 2);
+  assert.strictEqual(names.length, 2 + 2 + 9 + 7 + 4 + 4 + 8 + 2 + 3);
   const block = (group, label) => { const all = blocks(); const gi = names.indexOf('Migraine types'); return all.find((b, i) => b.querySelector('.hd-sel-name').textContent === label && (group === 'period' ? i < gi : i >= gi)); };
   const lastModal = () => Modal.opened[Modal.opened.length - 1];
   const clickModal = async (text) => { const b = lastModal().contentEl.querySelectorAll('button').find((x) => x.textContent.startsWith(text)); await b.click(); await flush(); };

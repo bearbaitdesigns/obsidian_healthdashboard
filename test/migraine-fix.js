@@ -2,7 +2,7 @@
 require('./clock');
 const assert = require('assert'); const path = require('path'); const fs = require('fs'); const { execFileSync } = require('child_process');
 const { registry, makeApp } = require('./mock');
-const PluginClass = require(path.resolve(process.argv[2] || 'dist/main.js'));
+const PluginClass = require(path.resolve(process.argv[2] || 'health-dashboard/main.js'));
 const flush = () => new Promise((r) => setTimeout(r, 400));
 const M = PluginClass._internals ? null : null;
 
@@ -20,7 +20,7 @@ const M = PluginClass._internals ? null : null;
 
   const MI = host.migraine && Object.getPrototypeOf(host.migraine).constructor;
   // pain words (internals live on the module; reach them through the report builder's import)
-  const src = fs.readFileSync(path.resolve(process.argv[2] || 'dist/main.js'), 'utf8');
+  const src = fs.readFileSync(path.resolve(process.argv[2] || 'health-dashboard/main.js'), 'utf8');
   assert(src.includes("const PAIN_WORDS = ['No pain', 'Very mild', 'Mild', 'Moderate', 'Severe', 'Very severe'];"));
 
   await registry.commands['health-dashboard:open-migraine'].checkCallback(false);

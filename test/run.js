@@ -40,7 +40,7 @@ async function loadHost(app) {
   await flush();
 
   // Registration
-  assert.deepStrictEqual(Object.keys(registry.views).sort(), ['a1c-dashboard', 'blood-pressure-dashboard', 'doctor-visits-dashboard', 'health-dashboard', 'medications-dashboard', 'migraine-tracker-dashboard', 'period-tracker-dashboard', 'sickness-dashboard']);
+  assert.deepStrictEqual(Object.keys(registry.views).sort(), ['a1c-dashboard', 'blood-pressure-dashboard', 'doctor-visits-dashboard', 'glucose-dashboard', 'health-dashboard', 'medications-dashboard', 'migraine-tracker-dashboard', 'period-tracker-dashboard', 'sickness-dashboard']);
   assert.deepStrictEqual(Object.keys(registry.codeblocks).sort(), ['health-dashboard', 'health-link', 'period-tracker']);
   console.log('commands:\n  ' + Object.values(registry.commands).map((c) => c.name).join('\n  '));
   console.log('ribbons:', registry.ribbons.map((r) => r.title).join(' | '));

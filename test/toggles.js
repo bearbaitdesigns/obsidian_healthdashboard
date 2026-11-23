@@ -34,7 +34,7 @@ async function boot(app) { reset(); const h = new PluginClass(app, { id: 'health
   assert(!registry.ribbons.some((r) => r.id === 'doctor-visits'));
   assert(!registry.settingTabs.some((t) => t.plugin && t.plugin.manifest && t.plugin.manifest.id === 'doctor-visits'));
   assert.strictEqual(registry.commands['health-dashboard:open-visits'].checkCallback(true), false);
-  assert.deepStrictEqual(tabs(), ['Overview', 'Period', 'Migraine', 'Blood pressure', 'Sickness', 'Medications', 'A1C']);
+  assert.deepStrictEqual(tabs(), ['Overview', 'Period', 'Migraine', 'Blood pressure', 'Sickness', 'Medications', 'A1C', 'Glucose']);
   assert(root.querySelector('.hd-sum') && !text(root).includes('Log doctor visit') && !root.querySelectorAll('.hd-visit-dot').length, 'overview without visits');
   assert(!text((tab().display(), tab().containerEl)).includes('Doctors and clinicians'), 'selectors hidden');
   assert.strictEqual(app.__pluginData['health-dashboard'].hub.active.visits, false);
@@ -44,7 +44,7 @@ async function boot(app) { reset(); const h = new PluginClass(app, { id: 'health
   // --- turn it back on
   await flip('Doctor visits', true);
   assert(host.visits && registry.commands['doctor-visits:log-visit'], 'back on');
-  assert.deepStrictEqual(tabs(), ['Overview', 'Period', 'Migraine', 'Visits', 'Blood pressure', 'Sickness', 'Medications', 'A1C']);
+  assert.deepStrictEqual(tabs(), ['Overview', 'Period', 'Migraine', 'Visits', 'Blood pressure', 'Sickness', 'Medications', 'A1C', 'Glucose']);
   assert(root.querySelectorAll('.hd-visit-dot').length === 1);
   registry.commands['health-dashboard:open-visits'].checkCallback(false); await flush();
   assert(text(root).includes('Landspítali'), 'fresh visits renderer');
@@ -62,7 +62,7 @@ async function boot(app) { reset(); const h = new PluginClass(app, { id: 'health
   console.log('overview cards (no migraine):', root.querySelectorAll('.hd-sum').map((x) => x.querySelector('h3').textContent).join(', '));
   await flip('Show period tracking', false);
   await flip('Show doctor visits', false);
-  for (const n of ['Show blood pressure', 'Show sickness and general health', 'Show medications', 'Show A1C']) await flip(n, false);
+  for (const n of ['Show blood pressure', 'Show sickness and general health', 'Show medications', 'Show A1C', 'Show glucose']) await flip(n, false);
   assert(text(root).includes('Nothing to show on the Overview'));
   await flip('Show period tracking', true);
   assert(!text(root).includes('Nothing to show') && root.querySelector('.hd-calendar'));

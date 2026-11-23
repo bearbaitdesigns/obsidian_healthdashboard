@@ -14,7 +14,8 @@ const LINK_TAB_ALIASES = {
   'blood-pressure': 'bp', bloodpressure: 'bp', pressure: 'bp',
   sickness: 'illness', sick: 'illness', health: 'illness', 'general-health': 'illness',
   medications: 'meds', medication: 'meds', medicine: 'meds', medicines: 'meds', med: 'meds',
-  hba1c: 'a1c', glucose: 'a1c', 'blood-sugar': 'a1c',
+  hba1c: 'a1c',
+  'blood-sugar': 'glucose', bloodsugar: 'glucose', cgm: 'glucose', sugar: 'glucose',
 };
 function linkTab(v) {
   const s = String(v == null ? '' : v).trim().toLowerCase().replace(/\s+/g, '-');

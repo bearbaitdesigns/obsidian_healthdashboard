@@ -1,0 +1,165 @@
+/* ===== Look: matches the Finance Dashboard =====
+   Grey page, white cards with a hairline border, underlined tabs, KPI tiles with small uppercase labels,
+   unboxed stats inside Overview cards. Loaded last so it restyles every tracker without touching its logic. */
+
+.hd-root {
+  --hd-gap: 14px;
+  --hd-radius: 10px;
+  --hd-card-bg: var(--background-primary);
+  --hd-page-bg: var(--background-secondary);
+  --hd-line: var(--background-modifier-border);
+  background: var(--hd-page-bg);
+  min-height: 100%;
+  max-width: none !important;
+  padding: 20px 22px 40px !important;
+  font-variant-numeric: tabular-nums;
+}
+.hd-root > * { max-width: 1280px; margin-left: auto; margin-right: auto; }
+
+/* ---------- Header ---------- */
+.hd-root .hd-topbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 12px; padding: 0; margin-bottom: 18px; border-bottom: none; }
+.hd-root .hd-title { order: 1; flex: 1 1 auto; align-items: center; gap: 10px; margin-bottom: 14px; min-width: 0; }
+.hd-root .hd-title-icon svg { width: 20px; height: 20px; }
+.hd-root .hd-title h2 { margin: 0; font-size: 1.5em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.hd-root .hd-subtitle { color: var(--text-muted); font-size: 0.88em; margin-top: 2px; }
+.hd-root .hd-help-btn { align-self: flex-start; margin-top: 4px; }
+.hd-root .hd-settings-btn { order: 2; margin-bottom: 14px; color: var(--text-muted); }
+.hd-root .hd-settings-btn svg { width: 17px; height: 17px; }
+.hd-root .hd-tabrow { order: 3; flex: 1 0 100%; display: flex; align-items: flex-end; gap: 8px; border-bottom: 1px solid var(--hd-line); }
+
+/* Tabs: underlined, like the finance dashboard */
+.hd-root .hd-tabs { display: flex; flex-wrap: wrap; gap: 2px; padding: 0; background: none; border: none; border-radius: 0; margin-right: auto; min-width: 0; }
+.hd-root .hd-tabs::-webkit-scrollbar { display: none; }
+.hd-root .hd-tab {
+  padding: 9px 10px; gap: 6px; border-radius: 0; flex: none; background: none !important; box-shadow: none !important; border: none;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; color: var(--text-muted); font-weight: 500; font-size: var(--font-ui-small); white-space: nowrap;
+}
+.hd-root .hd-tab:hover { color: var(--text-normal); }
+.hd-root .hd-tab.is-active { color: var(--text-normal); font-weight: 600; border-bottom-color: var(--interactive-accent); box-shadow: none; }
+.hd-root .hd-tabrow > button, .hd-root .hd-tabrow-btn, .hd-root .hd-report-btn { margin-bottom: 6px; }
+
+/* Buttons: compact, icon + label */
+.hd-root button.hd-btn, .hd-root .hd-head-btn, .hd-root .hd-tabrow-btn, .hd-root .hd-report-btn,
+.hd-root .pt-btn, .hd-root .mt-btn, .hd-root .hk-btn, .hd-root .dv-btn {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.85em; padding: 5px 11px; height: auto; border-radius: 6px;
+}
+.hd-root .hd-btn-icon svg, .hd-root .pt-btn-icon svg, .hd-root .hk-btn-icon svg, .hd-root .dv-btn-icon svg { width: 15px; height: 15px; }
+
+/* ---------- Cards ---------- */
+.hd-root .hd-card, .hd-root .pt-card, .hd-root .mt-card, .hd-root .hk-card, .hd-root .hd-x-card, .hd-root .dv-card, .hd-root .med-card {
+  background: var(--hd-card-bg); border: 1px solid var(--hd-line); border-radius: var(--hd-radius); box-shadow: none; padding: 14px 16px 16px;
+}
+.hd-root .hd-sum, .hd-root .med-card { border-top: 1px solid var(--hd-line); }
+.hd-root .hd-card h3, .hd-root .hd-card h4, .hd-root .pt-card h4, .hd-root .hk-card h4, .hd-root .mt-card-title, .hd-root .hd-x-head h4, .hd-root .dv-card h4 {
+  font-size: 1em; font-weight: 650; margin-top: 0;
+}
+.hd-root .hk-card-sub, .hd-root .mt-card-sub, .hd-root .hd-x-sub { color: var(--text-muted); font-size: 0.8em; }
+.hd-root .hk-section-heading, .hd-root .mt-section-heading, .hd-root .dv-section-heading {
+  font-size: 0.78em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin: 20px 0 10px;
+}
+.hd-root .hd-link, .hd-root .mt-link { font-size: 0.82em; color: var(--text-accent); background: none; box-shadow: none; border: none; padding: 0; white-space: nowrap; }
+.hd-root .hd-link:hover { text-decoration: none; opacity: 0.8; }
+.hd-root .hd-board-hint { color: var(--text-faint); }
+
+/* Grids use one gap everywhere */
+.hd-root .pt-grid, .hd-root .hk-grid, .hd-root .mt-grid { gap: var(--hd-gap); }
+
+/* ---------- KPI tiles (tracker tabs) ---------- */
+.hd-root .pt-cards, .hd-root .hk-tiles, .hd-root .dv-tiles, .hd-root .mt-tiles { gap: var(--hd-gap); margin-bottom: var(--hd-gap); }
+.hd-root .mt-tiles { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.hd-root .pt-stat, .hd-root .mt-tile, .hd-root .hk-tile, .hd-root .dv-tile {
+  background: var(--hd-card-bg); border: 1px solid var(--hd-line); border-radius: var(--hd-radius); padding: 14px 16px; box-shadow: none; min-width: 0;
+}
+.hd-root .pt-stat-label, .hd-root .mt-tile-label, .hd-root .hk-tile-label, .hd-root .dv-tile-label {
+  display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 0.78em; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em;
+}
+.hd-root .pt-stat-value, .hd-root .mt-tile-value, .hd-root .hk-tile-value, .hd-root .dv-tile-value {
+  font-size: 1.6em; font-weight: 700; letter-spacing: -0.02em; line-height: 1.15; margin-top: 6px;
+}
+.hd-root .pt-stat-sub, .hd-root .mt-tile-sub, .hd-root .hk-tile-sub, .hd-root .dv-tile-sub { color: var(--text-muted); font-size: 0.78em; margin-top: 4px; line-height: 1.35; }
+.hd-root .dv-tile { border-left-width: 1px; }
+.hd-root .dv-tile:hover, .hd-root .dv-tile:focus-visible { border-color: var(--interactive-accent); box-shadow: none; transform: translateY(-1px); }
+
+/* Category colour: a dot before the label instead of a coloured edge */
+.hd-root .pt-stat, .hd-root .hk-tile, .hd-root .dv-tile, .hd-root .hd-stat { --dot: transparent; --dot-size: 0px; --dot-gap: -6px; }
+.hd-root .is-accent, .hd-root .is-warn, .hd-root [class*="bp-tile-l"], .hd-root .ill-tile-good, .hd-root .bp-tile-target { --dot-size: 7px; --dot-gap: -2px; }
+.hd-root .pt-stat.is-accent { --dot: var(--pt-accent); } .hd-root .pt-stat.is-warn { --dot: var(--pt-out); border-color: var(--hd-line); }
+.hd-root .hk-tile.is-accent { --dot: var(--interactive-accent); } .hd-root .hk-tile.is-warn { --dot: var(--hk-warn); border-color: var(--hd-line); }
+.hd-root .dv-tile.is-accent { --dot: var(--dv-accent); } .hd-root .dv-tile.is-warn { --dot: var(--dv-warn); border-color: var(--hd-line); }
+.hd-root .bp-tile-l0, .hd-root .ill-tile-good, .hd-root .bp-tile-target { --dot: var(--bp-l0); }
+.hd-root .bp-tile-l1 { --dot: var(--bp-l1); } .hd-root .bp-tile-l2 { --dot: var(--bp-l2); }
+.hd-root .bp-tile-l3 { --dot: var(--bp-l3); } .hd-root .bp-tile-l4 { --dot: var(--bp-l4); border-color: var(--hd-line); }
+.hd-root .pt-stat, .hd-root .hk-tile, .hd-root .dv-tile, .hd-root .hd-stat { box-shadow: none !important; }
+.hd-root .pt-stat-label::before, .hd-root .hk-tile-label::before, .hd-root .dv-tile-label::before, .hd-root .hd-stat-label::before {
+  content: ''; flex: none; width: var(--dot-size); height: var(--dot-size); border-radius: 50%; background: var(--dot); margin-right: var(--dot-gap);
+}
+
+/* ---------- Overview ---------- */
+.hd-root .hd-disclaimer { background: var(--hd-card-bg); border: 1px solid var(--hd-line); border-radius: var(--hd-radius); }
+.hd-root .hd-banner { border-radius: var(--hd-radius); background: var(--hd-card-bg); border: 1px solid var(--hd-line); box-shadow: inset 3px 0 0 var(--hd-migraine); }
+.hd-root .hd-sum-head { margin-bottom: 12px; }
+.hd-root .hd-sum-head h3 { font-size: 1em; font-weight: 650; }
+.hd-root .hd-sum-icon svg { width: 16px; height: 16px; }
+.hd-root .hd-grip { color: var(--text-faint); }
+/* Stats inside an Overview card: label over value, no boxes (like Assets / Debts in finance) */
+.hd-root .hd-stats { gap: 14px 16px; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); }
+.hd-root .hd-stat { background: none; border: none; border-radius: 0; padding: 0; }
+.hd-root .hd-stat.is-accent { --dot: var(--hd-period); }
+.hd-root .hd-sum.is-migraine .hd-stat.is-accent { --dot: var(--hd-migraine); }
+.hd-root .hd-sum.is-visits .hd-stat.is-accent { --dot: var(--dv-accent); }
+.hd-root .hd-sum.is-bp .hd-stat.is-accent { --dot: var(--hd-bp); }
+.hd-root .hd-sum.is-meds .hd-stat.is-accent { --dot: var(--hd-med); }
+.hd-root .hd-sum.is-a1c .hd-stat.is-accent { --dot: var(--hd-a1c); }
+.hd-root .hd-sum.is-glucose .hd-stat.is-accent { --dot: var(--hd-glucose); }
+.hd-root .hd-stat.is-warn { --dot: var(--hd-warn); }
+.hd-root .hd-stat-label { display: flex; align-items: center; gap: 6px; font-size: 0.74em; font-weight: 500; letter-spacing: 0.05em; }
+.hd-root .hd-stat-value { font-size: 1.15em; margin: 4px 0 2px; letter-spacing: -0.01em; line-height: 1.2; }
+.hd-root .hd-stat-sub { font-size: 0.78em; line-height: 1.35; }
+
+/* Calendars: quieter day cells on white cards */
+.hd-root .hd-cal-day, .hd-root .pt-cal-day, .hd-root .hk-cal-day, .hd-root .mt-cal-cell { border-radius: 8px; }
+.hd-root .hd-cal-day:not([class*="hd-flow"]), .hd-root .hk-cal-day:not([class*="ill-sev-"]) { background: var(--background-secondary); }
+.hd-root .hd-cal-day.is-blank, .hd-root .hk-cal-day.is-blank, .hd-root .pt-cal-day.is-blank { background: none; }
+
+/* ---------- Horizontal bars, segmented controls, tables ---------- */
+.hd-root .pt-hbar-track, .hd-root .hk-hbar-track, .hd-root .mt-hbar-track { background: var(--background-modifier-hover); border-radius: 4px; }
+.hd-root .pt-hbar-fill, .hd-root .hk-hbar-fill, .hd-root .mt-hbar { border-radius: 4px; }
+.hd-root .dv-views { background: var(--background-modifier-hover); border: none; border-radius: 8px; padding: 2px; gap: 2px; }
+.hd-root .dv-view-btn { border-radius: 6px; background: none; box-shadow: none; color: var(--text-muted); }
+.hd-root .dv-view-btn.is-active { background: var(--hd-card-bg); color: var(--text-normal); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12); }
+.hd-root table.hk-table, .hd-root .mt-card table { border-collapse: collapse; width: 100%; }
+.hd-root .hk-table th, .hd-root .mt-card table th {
+  font-size: 0.72em; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); text-align: left;
+  padding: 6px 8px; border-bottom: 1px solid var(--hd-line); background: none;
+}
+.hd-root .hk-table td, .hd-root .mt-card table td { padding: 8px; border-bottom: 1px solid var(--hd-line); }
+.hd-root .hk-table tr:last-child td, .hd-root .mt-card table tr:last-child td { border-bottom: none; }
+.hd-root .hk-table-card { padding: 14px 16px 6px; }
+
+/* Visits: upcoming visit and history cards */
+.hd-root .dv-visit { background: var(--hd-card-bg); border: 1px solid var(--hd-line); border-radius: var(--hd-radius); box-shadow: none; }
+.hd-root .dv-visit.is-upcoming { border-color: var(--hd-line); box-shadow: inset 3px 0 0 var(--dv-accent); }
+.hd-root .dv-tag, .hd-root .dv-badge, .hd-root .med-badge { border-radius: 999px; font-size: 0.72em; font-weight: 600; }
+
+/* Medications */
+.hd-root .med-col-item { background: var(--background-secondary); border-left: none; border-radius: 8px; }
+
+/* Phones: keep the KPI rows readable */
+@container (max-width: 560px) {
+  .hd-root .pt-stat-value, .hd-root .mt-tile-value, .hd-root .hk-tile-value, .hd-root .dv-tile-value { font-size: 1.35em; }
+}
+
+/* ---------- Overview: fixed layout ---------- */
+.hd-panel-overview { container-type: inline-size; container-name: hdov; }
+.hd-root .hd-home { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--hd-gap); align-items: start; }
+.hd-root .hd-home.is-single { grid-template-columns: minmax(0, 1fr); }
+.hd-root .hd-home-left, .hd-root .hd-home-right { display: flex; flex-direction: column; gap: var(--hd-gap); min-width: 0; }
+.hd-root .hd-home-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--hd-gap); align-items: stretch; }
+.hd-root .hd-home .hd-card, .hd-root .hd-home .hd-x-card { margin: 0; }
+.hd-root .hd-home .hd-sum .hd-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@container hdov (max-width: 860px) {
+  .hd-root .hd-home { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Settings: dashboard rows with move buttons */
+.hd-settings .hd-dash-row .setting-item-control { gap: 4px; }

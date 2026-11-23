@@ -22,10 +22,14 @@ const HELP_REFS = {
   nice: ['National Institute for Health and Care Excellence (NICE). *Type 2 diabetes: prevention in people at high risk* (public health guideline PH38).', 'https://www.nice.org.uk/guidance/ph38'],
   adag: ['Nathan DM, Kuenen J, Borg R, Zheng H, Schoenfeld D, Heine RJ; A1c-Derived Average Glucose Study Group. *Translating the A1C assay into estimated average glucose values.* Diabetes Care 2008;31(8):1473–1478.', 'https://pubmed.ncbi.nlm.nih.gov/18540046/'],
   ifcc: ['Hoelzel W, et al. *IFCC reference system for measurement of hemoglobin A1c in human blood and the national standardization schemes in the United States, Japan, and Sweden: a method-comparison study.* Clin Chem 2004;50(1):166–174.', 'https://pubmed.ncbi.nlm.nih.gov/14709644/'],
+  battelino: ['Battelino T, Danne T, Bergenstal RM, et al. *Clinical targets for continuous glucose monitoring data interpretation: recommendations from the International Consensus on Time in Range.* Diabetes Care 2019;42(8):1593–1603.', 'https://doi.org/10.2337/dci19-0028'],
+  gmi: ['Bergenstal RM, Beck RW, Close KL, et al. *Glucose management indicator (GMI): a new term for estimating A1C from continuous glucose monitoring.* Diabetes Care 2018;41(11):2275–2280.', 'https://doi.org/10.2337/dc18-1581'],
+  ada_glycemic: ['American Diabetes Association Professional Practice Committee. *6. Glycemic Goals and Hypoglycemia: Standards of Care in Diabetes.* Diabetes Care (updated each year, Supplement 1).', 'https://professional.diabetes.org/standards-of-care'],
+  agp: ['Danne T, Nimri R, Battelino T, et al. *International consensus on use of continuous glucose monitoring.* Diabetes Care 2017;40(12):1631–1640.', 'https://doi.org/10.2337/dc17-1600'],
 };
 
-const HELP_COLORS = { overview: '#7852ee', period: '#b8325a', migraine: '#4a9a2e', visits: '#1f8a8a', bp: '#c0392b', illness: '#e08a2b', meds: '#2c6fbb', a1c: '#7a4fd0' };
-const HELP_SETTINGS = { period: ['period-tracker', 'Period settings'], migraine: ['migraine-tracker', 'Migraine settings'], visits: ['doctor-visits', 'Doctor visits settings'], bp: ['blood-pressure', 'Blood pressure settings'], illness: ['sickness-tracker', 'Sickness settings'], meds: ['medication-list', 'Medications settings'], a1c: ['a1c-tracker', 'A1C settings'], overview: ['health-dashboard', 'Health Dashboard settings'] };
+const HELP_COLORS = { overview: '#7852ee', period: '#b8325a', migraine: '#4a9a2e', visits: '#1f8a8a', bp: '#c0392b', illness: '#e08a2b', meds: '#2c6fbb', a1c: '#7a4fd0', glucose: '#a16207' };
+const HELP_SETTINGS = { period: ['period-tracker', 'Period settings'], migraine: ['migraine-tracker', 'Migraine settings'], visits: ['doctor-visits', 'Doctor visits settings'], bp: ['blood-pressure', 'Blood pressure settings'], illness: ['sickness-tracker', 'Sickness settings'], meds: ['medication-list', 'Medications settings'], a1c: ['a1c-tracker', 'A1C settings'], glucose: ['glucose-tracker', 'Glucose settings'], overview: ['health-dashboard', 'Health Dashboard settings'] };
 
 const LVL = ['#2f9e6b', '#c9a227', '#e08a2b', '#d1495b', '#7f1d1d']; // same colours as the blood pressure and A1C dashboards
 const toHex = (rgb) => '#' + rgb.map((c) => Math.round(Math.max(0, Math.min(1, c)) * 255).toString(16).padStart(2, '0')).join('');
@@ -79,6 +83,7 @@ function helpFor(host, key) {
         'Averages use your last ' + (s.cyclesToAverage || 6) + ' cycles (Cycles to average).',
         'Next period = start of your last period + your average cycle (28 days until you have two periods). If it is late, it is projected from today.',
         'Estimated ovulation = next period start minus ' + (s.lutealPhase || 14) + ' days (Luteal phase length). The fertile window is the 5 days before ovulation, the day of ovulation and the day after; pregnancy is possible only in about a 6-day window ending on ovulation day. This is a calendar estimate and is not reliable for preventing or planning pregnancy.',
+        'Average pain = the mean pain score on all bleeding days with a score. Average pain, first 2 days = the mean over day 1 and day 2 of each period, when pain is often worst.',
         'Severe pain = a pain score of ' + P.PAIN_SEVERE + ' or higher on the 0–5 scale. Heavy flow is flagged when heavy days average 3 or more per period.',
       ],
       table: {
@@ -250,6 +255,47 @@ function helpFor(host, key) {
       refs: ['ada', 'nice', 'adag', 'ifcc'],
     };
   }
+  if (key === 'glucose') {
+    const s = host.glucose ? host.glucose.settings : { unit: 'mmol/L', rangePreset: 'standard' };
+    const t = G.targetOf(s);
+    const both = (mg) => Math.round(mg) + ' mg/dL (' + (mg / G.MG_PER_MMOL).toFixed(1) + ')';
+    const pr = G.PRESETS[s.rangePreset] || G.PRESETS.standard;
+    return {
+      title: 'Glucose',
+      intro: 'Your blood glucose from a finger-prick meter or a continuous glucose monitor (CGM): how much of the time you are in your target range, your average, lows and highs, and your pattern through the day.',
+      what: [
+        '**Time in range**: the share of readings inside your target range, ' + G.fmtRange(s, t) + ' [[#2f9e6b]]. **Time below** and **time above range** are the shares under and over it.',
+        '**Average glucose**, and with CGM data the **glucose management indicator (GMI)**: the A1C your average would usually go with.',
+        '**Variability (CV)**: how much your glucose swings around its average.',
+        '**Calendar**: each day coloured by how it went: green [[#2f9e6b]] mostly in range, amber [[#e6a817]] mostly high, red [[#d1495b]] lows. A small red mark means there was a low that day.',
+        '**Time in ranges**: one bar split into very low [[#8b1a1a]], low [[#d1495b]], in range [[#2f9e6b]], high [[#e6a817]] and very high [[#dd7a35]].',
+        '**Daily pattern**: all days laid on top of each other by time of day. The line is the median, the darker band holds the middle half of readings and the lighter band 90% of them.',
+        '**Lows**: each time you went below range. With CGM data a low counts when it lasts 15 minutes or more.',
+      ],
+      calc: [
+        'With CGM data in the period, time in range, average, variability and the daily pattern use the CGM readings (one every 5 or 15 minutes). Otherwise they use your meter readings, and the shares are of readings, not of time.',
+        'Time in a range = readings in that range / all readings x 100. With CGM, ' + '1% of the day is about 14 minutes.',
+        'GMI (%) = 3.31 + 0.02392 x average glucose in mg/dL. It is most reliable with at least 14 days of CGM data worn 70% of the time or more.',
+        'Coefficient of variation (CV) = standard deviation / average x 100.',
+        'mmol/L = mg/dL / 18.016.',
+        'CGM data worn = readings x the usual time between them / minutes in the period.',
+      ],
+      table: {
+        head: ['Range', 'Glucose', 'Goal for most adults'],
+        rows: [['Very high', 'above ' + both(250), 'under 5% of the time'], ['High', both(t.high + 1).replace(/ \(.*/, '') + '–' + both(250), 'under 25% with very high'], ['In range', both(t.low).replace(/ \(.*/, '') + '–' + both(t.high), 'over 70% (about 17 h a day)'], ['Low', both(54).replace(/ \(.*/, '') + '–' + both(t.low - 1), 'under 4% with very low'], ['Very low', 'below ' + both(54), 'under 1% (about 15 min a day)']],
+        colors: ['#dd7a35', '#e6a817', '#2f9e6b', '#d1495b', '#8b1a1a'], mark: -1,
+      },
+      bounds: [
+        'The International Consensus on Time in Range (2019) sets 70–180 mg/dL (3.9–10.0 mmol/L) as the target range for most adults with type 1 or type 2 diabetes, with the goals in the table. It also suggests a CV of 36% or less.',
+        'Below 70 mg/dL (3.9 mmol/L) is a level 1 low; below 54 mg/dL (3.0 mmol/L) is a level 2 (clinically important) low (ADA Standards of Care).',
+        'Goals are less strict for older adults or people at high risk of lows (over 50% in range, under 1% below), and different in pregnancy (63–140 mg/dL, 3.5–7.8 mmol/L).',
+        'A finger-prick reading is one moment in time; a few readings a day can miss highs and lows between them.',
+      ],
+      choice: { text: 'Your doctor may give you a different target range. You’re using ' + pr.name + '. You can also choose mmol/L or mg/dL, and the default period.', bold: [pr.name], used: 'Target range ' + both(t.low).replace(/ \(.*/, '') + '–' + both(t.high) + ' (' + t.name + '); values shown in ' + s.unit + '.' },
+      footnote: 'If you have a very low reading, treat it straight away and follow the plan your care team gave you.',
+      refs: ['battelino', 'gmi', 'ada_glycemic', 'agp'],
+    };
+  }
   return null;
 }
 
@@ -348,7 +394,7 @@ function openSettingsTab(app, id) {
 /* ---------------- PDF appendix ---------------- */
 const pdfSafe = (t) => String(t).replace(/ ?\[\[#[0-9a-f]{6}\]\]/gi, '').replace(/\*\*([^*]+)\*\*/g, '$1').replace(/\*([^*\s][^*]*)\*/g, '$1').replace(/[≥]/g, '>=').replace(/[≤]/g, '<=').replace(/[−]/g, '-').replace(/[→]/g, '->').replace(/[“”]/g, '"').replace(/ /g, ' ');
 /** Keys that get an appendix section (Doctor visits and Medications have no calculations to explain) */
-const APPENDIX_KEYS = ['overview', 'period', 'migraine', 'bp', 'illness', 'a1c'];
+const APPENDIX_KEYS = ['overview', 'period', 'migraine', 'bp', 'illness', 'a1c', 'glucose'];
 /** Write "Appendix: how this report was calculated" for the given dashboards into a Report, then the disclaimer */
 function writeAppendix(R, host, keys) {
   keys = keys.filter((k) => APPENDIX_KEYS.includes(k) && (k === 'overview' || host[k]));
@@ -405,7 +451,7 @@ function writeDisclaimer(R) {
 
 /* Every single-dashboard report gets its appendix (or just the disclaimer) right before the page footers.
    The combined Health report turns this off and adds one appendix at the end. */
-const REPORT_KEYS = { 'Period report': 'period', 'Migraine report': 'migraine', 'Blood pressure report': 'bp', 'Sickness report': 'illness', 'A1C report': 'a1c', 'Doctor visits report': 'visits', 'Medication list': 'meds', 'Health summary': 'overview' };
+const REPORT_KEYS = { 'Period report': 'period', 'Migraine report': 'migraine', 'Blood pressure report': 'bp', 'Sickness report': 'illness', 'A1C report': 'a1c', 'Glucose report': 'glucose', 'Doctor visits report': 'visits', 'Medication list': 'meds', 'Health summary': 'overview' };
 const APPENDIX = { host: null, combined: false };
 (function hookReportFooter() {
   const orig = KK.Report.prototype.footerAll;
@@ -429,7 +475,8 @@ function buildAppendixPdf(host, keys, o) {
 }
 
 /* ---------------- Expand any chart to see it larger ---------------- */
-const CHART_SEL = 'svg.hd-chart, svg.pt-chart, svg.hk-chart, .mt-vbars, .mt-hbars, .hk-hbar, .pt-hbar';
+const CHART_SEL = 'svg.hd-chart, svg.pt-chart, svg.hk-chart, .mt-vbars, .mt-hbars, .hk-hbar, .pt-hbar, .hd-cal-day, .pt-cal-day, .mt-cal, .hk-cal-grid';
+const CAL_SEL = '.hd-cal-day, .pt-cal-day, .mt-cal-cell, .hk-cal-day';
 const CARD_SEL = '.mt-card, .hk-card, .pt-card, .hd-card, .dv-card';
 /** Adds an expand button to every card in `root` that holds a bar or line chart */
 function addExpanders(root, app) {
@@ -442,7 +489,8 @@ function addExpanders(root, app) {
   for (const card of cards) {
     if (Array.from(card.children).some((c) => c.classList && c.classList.contains('hd-expand-btn'))) continue;
     card.addClass('hd-has-expand');
-    const b = card.createEl('button', { cls: 'clickable-icon hd-expand-btn', attr: { 'aria-label': 'Expand this chart' } });
+    const isCal = !!card.querySelector(CAL_SEL);
+    const b = card.createEl('button', { cls: 'clickable-icon hd-expand-btn', attr: { 'aria-label': isCal ? 'Expand this calendar' : 'Expand this chart' } });
     setIcon(b, 'maximize-2');
     b.onclick = (e) => { e.stopPropagation(); new ExpandModal(app || window.app, card).open(); };
   }
@@ -452,19 +500,31 @@ class ExpandModal extends Modal {
   onOpen() {
     this.modalEl.addClass('hd-expand-modal');
     const titleEl = this.card.querySelector('h3, h4, .mt-card-title');
-    this.titleEl.setText(titleEl ? titleEl.textContent : 'Chart');
+    const isCal = !!this.card.querySelector(CAL_SEL);
+    this.titleEl.setText(titleEl && !isCal ? titleEl.textContent : isCal ? 'Calendar' : 'Chart');
     const clone = this.card.cloneNode(true);
     clone.classList.remove('hd-sortable', 'is-moving', 'hd-has-expand');
     clone.removeAttribute('style');
     clone.querySelectorAll('.hd-expand-btn, .hd-resize, .hd-grip').forEach((n) => n.remove());
-    if (titleEl) { const t = clone.querySelector('h3, h4, .mt-card-title'); if (t) t.remove(); }
+    if (titleEl && !isCal) { const t = clone.querySelector('h3, h4, .mt-card-title'); if (t) t.remove(); }
+    if (isCal) {
+      this.modalEl.addClass('is-calendar');
+      // Month arrows belong to the dashboard; a day in the large calendar opens the same menu as on the dashboard
+      clone.querySelectorAll('.hd-cal-nav button, .pt-cal-nav button, .hk-cal-nav button, .mt-cal-head button').forEach((n) => n.remove());
+      const orig = Array.from(this.card.querySelectorAll(CAL_SEL)), copy = Array.from(clone.querySelectorAll(CAL_SEL));
+      copy.forEach((c, i) => {
+        const o = orig[i];
+        if (!o || c.classList.contains('is-blank')) return;
+        c.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); this.close(); o.dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: e.clientX, clientY: e.clientY })); });
+      });
+    }
     clone.addClass('hd-expand-body');
     // keep the theme variables the dashboard defines (colours of bars and bands)
     const scope = this.card.closest('.hd-root, .hk-dashboard, .pt-dashboard, .mt-dashboard, .dv-dashboard');
     const wrap = this.contentEl.createDiv({ cls: 'hd-expand-scope hd-root ' + (scope ? Array.from(scope.classList).filter((c) => /dashboard/.test(c)).join(' ') : '') });
     wrap.appendChild(clone);
     // a click on a bar or day in the copy has no handler; keep it read-only
-    clone.querySelectorAll('button, [role="button"]').forEach((n) => n.setAttribute('tabindex', '-1'));
+    if (!isCal) clone.querySelectorAll('button, [role="button"]').forEach((n) => n.setAttribute('tabindex', '-1'));
     try { addTooltips(wrap); } catch (e) { /* tooltips are a nicety */ }
   }
   onClose() { this.contentEl.empty(); }

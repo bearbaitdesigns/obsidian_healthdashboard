@@ -1,3 +1,4 @@
+require('./clock');
 const assert = require('assert'); const path = require('path');
 const { registry, makeApp, Modal, menus, El } = require('./mock');
 const { seed } = require('./run-seed');

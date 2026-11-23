@@ -300,19 +300,70 @@ period = patch(period, "  getAnalysis() {\n    const t = todayNum();\n", "  getA
 migraine = patch(migraine, ".setDesc('Highlight when you’ve taken acute medication on at least this many days in the last 30.')",
   ".setDesc('Highlight when you’ve taken acute medication on at least this many days in the last 30. The International Classification of Headache Disorders (ICHD-3) uses 10 days a month for triptans, ergots, opioids and combination painkillers (such as Excedrin), and 15 days for simple painkillers alone (such as ibuprofen or paracetamol). Use 10 if you take any of the first group.')", 'migraine overuse desc');
 
+// Pain on the first two days of each period, beside the average over all bleeding days
+period = patch(period, "    avgPain: pains.length ? mean(pains) : null,",
+  "    avgPain: pains.length ? mean(pains) : null,\n    avgPainFirst2: (() => { const v = entries.filter((e) => e.pain != null && periods.some((p) => e.day >= p.start && e.day <= p.start + 1)).map((e) => e.pain); return v.length ? mean(v) : null; })(),", 'period first-two-days pain');
+period = patch(period, "    if (sum.avgPain != null) box.createEl('p', { cls: 'pt-muted pt-small', text: 'Average pain on bleeding days: ' + round1(sum.avgPain) + '/' + PAIN_MAX + ' (' + painWord(Math.round(sum.avgPain)) + ').' });",
+  "    if (sum.avgPain != null || sum.avgPainFirst2 != null) {\n      const pg = box.createDiv({ cls: 'pt-pain-stats' });\n      for (const [label, v, sub] of [['Average pain', sum.avgPain, 'All bleeding days'], ['Average pain · first 2 days', sum.avgPainFirst2, 'Day 1 and day 2 of each period']]) {\n        const st = pg.createDiv({ cls: 'pt-pain-stat' });\n        st.createDiv({ cls: 'pt-stat-label', text: label });\n        st.createDiv({ cls: 'pt-stat-value', text: v == null ? '–' : round1(v) + '/' + PAIN_MAX });\n        st.createDiv({ cls: 'pt-stat-sub', text: (v == null ? 'No pain logged' : painWord(Math.round(v))) + ' · ' + sub });\n      }\n    }", 'period pain two stats');
+period = patch(period, "    ['Average pain on bleeding days', sum.avgPain == null ? '-' : round1(sum.avgPain) + ' / ' + PAIN_MAX],",
+  "    ['Average pain on bleeding days', sum.avgPain == null ? '-' : round1(sum.avgPain) + ' / ' + PAIN_MAX],\n    ['Average pain, first 2 days of each period', sum.avgPainFirst2 == null ? '-' : round1(sum.avgPainFirst2) + ' / ' + PAIN_MAX],", 'period pain first2 report row');
+
+const PERIOD_NOTES = fs.readFileSync(path.join(__dirname, 'src/period-notes.js'), 'utf8');
+// Recent periods: average pain on the first two days of each period
+period = patch(period, "    p.avgPain = painN ? painSum / painN : null;",
+  "    p.avgPain = painN ? painSum / painN : null;\n    { const f2 = [p.start, p.start + 1].filter((d) => d <= p.end).map((d) => byDay.get(d)).filter((e) => e && e.pain != null).map((e) => e.pain); p.painFirst2 = f2.length ? f2.reduce((x, y) => x + y, 0) / f2.length : null; }", 'period painFirst2 per period');
+period = patch(period, "    for (const h of ['Start', 'Days', 'Cycle', 'Peak flow', 'Avg pain', 'Symptoms']) hr.createEl('th', { text: h });",
+  "    for (const h of ['Start', 'Days', 'Cycle', 'Peak flow', 'Avg pain', 'Pain days 1–2', 'Symptoms']) hr.createEl('th', { text: h });", 'period history head');
+period = patch(period, "      r.createEl('td', { text: p.avgPain == null ? '-' : String(round1(p.avgPain)) });\n      r.createEl('td', { text: p.topSymptoms.join(', ') || '-' });",
+  "      r.createEl('td', { text: p.avgPain == null ? '-' : String(round1(p.avgPain)) });\n      r.createEl('td', { text: p.painFirst2 == null ? '-' : String(round1(p.painFirst2)) });\n      r.createEl('td', { text: p.topSymptoms.join(', ') || '-' });", 'period history first2 cell');
+
+// One note per period: each note lists its days; older one-note-per-day logs are still read and can be converted
+period = patch(period, "  parseEntry(file) {\n    const cache = this.app.metadataCache.getFileCache(file);\n    const fm = cache && cache.frontmatter;\n    if (!fm) return null;\n    if (fm.type && fm.type !== 'period-log') return null;\n    const day = toDayNum(fm.date != null ? fm.date : file.basename);",
+  "  entryFromObj(o, file, kind) {\n    const day = toDayNum(o.date);\n    if (day == null) return null;\n    let flow = String(o.flow == null ? 'none' : o.flow).toLowerCase().trim();\n    if (!FLOWS.includes(flow)) flow = 'none';\n    let pain = o.pain === '' || o.pain == null ? null : Number(o.pain);\n    if (pain != null && !isFinite(pain)) pain = null;\n    if (pain != null) pain = Math.max(0, Math.min(PAIN_MAX, Math.round(pain)));\n    return { day, file, kind, flow, pain, symptoms: toList(o.symptoms), medications: toList(o.medications), notes: o.notes == null ? '' : String(o.notes) };\n  }\n  parsePeriodNote(file) {\n    const cache = this.app.metadataCache.getFileCache(file);\n    const fm = cache && cache.frontmatter;\n    if (!fm || fm.type !== 'period' || !Array.isArray(fm.days)) return null;\n    return fm.days.map((d) => (d && typeof d === 'object' ? this.entryFromObj(d, file, 'period') : null)).filter(Boolean);\n  }\n  parseEntry(file) {\n    const cache = this.app.metadataCache.getFileCache(file);\n    const fm = cache && cache.frontmatter;\n    if (!fm) return null;\n    if (fm.type && fm.type !== 'period-log') return null;\n    const day = toDayNum(fm.date != null ? fm.date : file.basename);", 'period entryFromObj');
+period = patch(period, "    return {\n      day, file, flow, pain,\n      symptoms: toList(fm.symptoms),",
+  "    return {\n      day, file, kind: 'day', flow, pain,\n      symptoms: toList(fm.symptoms),", 'period day kind');
+period = patch(period, "      if (!this.inLogFolder(f.path)) continue;\n      const e = this.parseEntry(f);\n      if (e) map.set(e.day, e);\n    }",
+  "      if (!this.inLogFolder(f.path)) continue;\n      const days = this.parsePeriodNote(f);\n      if (days) { for (const e of days) map.set(e.day, e); continue; }\n      const e = this.parseEntry(f);\n      if (e && !(map.get(e.day) && map.get(e.day).kind === 'period')) map.set(e.day, e);\n    }", 'period getEntries both kinds');
+period = patch(period, "  async saveEntry(st) {\n    const folder = normalizePath(this.settings.logFolder);\n    await this.ensureFolder(folder);\n    const existing = this.getEntryByDay(st.day);\n    let file = existing ? existing.file : null;\n    if (!file) {",
+  "  async saveEntry(st) {\n    const folder = normalizePath(this.settings.logFolder);\n    await this.ensureFolder(folder);\n    const existing = this.getEntryByDay(st.day);\n    if (!existing || existing.kind !== 'day') return this.savePeriodDay(st, existing);\n    let file = existing ? existing.file : null;\n    if (!file) {", 'period saveEntry route');
+period = patch(period, "  async deleteEntry(entry) {\n    if (this.app.fileManager.trashFile)",
+  "  async deleteEntry(entry) {\n    if (entry.kind === 'period') {\n      let left = null;\n      await this.app.fileManager.processFrontMatter(entry.file, (fm) => {\n        fm.days = (Array.isArray(fm.days) ? fm.days : []).filter((d) => toDayNum(d && d.date) !== entry.day);\n        left = fm.days.slice();\n        Object.assign(fm, this.periodSpan(fm.days));\n      });\n      if (!left.length) { if (this.app.fileManager.trashFile) await this.app.fileManager.trashFile(entry.file); else await this.app.vault.trash(entry.file, true); }\n      else await this.writeDayTable(entry.file, left);\n      this.requestRefresh();\n      return;\n    }\n    if (this.app.fileManager.trashFile)", 'period deleteEntry period');
+period = patch(period, "  async quickStart() {", PERIOD_NOTES + "\n  async quickStart() {", 'period notes methods');
+period = patch(period, "    this.addCommand({ id: 'period-started', name: 'Period started today', callback: () => this.quickStart() });",
+  "    this.addCommand({ id: 'period-started', name: 'Period started today', callback: () => this.quickStart() });\n    this.addCommand({ id: 'convert-day-notes', name: 'Combine day notes into one note per period', callback: () => this.confirmConvert() });", 'period convert command');
+period = patch(period, "    new Setting(c).setName('Log folder').setDesc('One note per logged day is stored here (YYYY-MM-DD.md).')",
+  "    { const old = p.getEntries().filter((e) => e.kind === 'day').length;\n      new Setting(c).setName('One note per period').setDesc('Each period is one note that lists every day you logged (flow, pain, symptoms). ' + (old ? old + ' days are still in separate day notes from before: combine them into period notes. The old day notes go to the trash.' : 'All your days are already in period notes.'))\n        .addButton((b) => b.setButtonText('Combine day notes').setDisabled(!old).onClick(() => p.confirmConvert(() => this.display()))); }\n    new Setting(c).setName('Log folder').setDesc('Period notes are stored here, one per period (Period YYYY-MM-DD.md).')", 'period settings convert');
+
+// Migraine: pain and symptoms day by day inside one episode note (older episodes unchanged)
+const MDAYS = fs.readFileSync(path.join(__dirname, 'src/migraine-days.js'), 'utf8').split('/*@@MODAL@@*/');
+migraine = patch(migraine, "function parseEpisode(file, fm) {", MDAYS[0] + "\nfunction parseEpisode(file, fm) {", 'migraine days helpers');
+migraine = patch(migraine, "    notes: fm.notes ? String(fm.notes) : '',\n  };\n}", "    notes: fm.notes ? String(fm.notes) : '',\n    days: parseEpDays(fm.days),\n  };\n}", 'migraine parse days');
+migraine = patch(migraine, "    notes: ep.notes || '',\n    tags: ['migraine'],", "    notes: ep.notes || '',\n    days: ep.days && ep.days.length ? ep.days.map((d) => ({ date: d.date, pain: d.pain, symptoms: d.symptoms })) : undefined,\n    tags: ['migraine'],", 'migraine fm days');
+migraine = patch(migraine, "    const fm = stringifyYaml(episodeToFrontmatter(ep));", "    const fmo = episodeToFrontmatter(ep);\n    if (fmo.days === undefined) delete fmo.days;\n    const fm = stringifyYaml(fmo);", 'migraine create days');
+migraine = patch(migraine, "    await this.app.fileManager.processFrontMatter(file, (fm) => { Object.assign(fm, data); });", "    await this.app.fileManager.processFrontMatter(file, (fm) => { Object.assign(fm, data); if (data.days === undefined) delete fm.days; });", 'migraine update days');
+migraine = patch(migraine, "    /* Triggers */\n", "    /* Day by day */\n    this.daysSec = this.section('Day by day', 'calendar-days');\n    this.renderDays();\n\n    /* Triggers */\n", 'migraine days section');
+migraine = patch(migraine, "    if (this.todEndHelp) this.todEndHelp.setText(", "    if (this.daysSec) this.renderDays();\n    if (this.todEndHelp) this.todEndHelp.setText(", 'migraine days follow dates');
+migraine = patch(migraine, "      notes: this.notesInput.value.trim(),\n    };\n  }", "      notes: this.notesInput.value.trim(),\n      days: this.collectDays(start, end),\n    };\n  }", 'migraine collect days');
+migraine = patch(migraine, "    const ep = this.collect();\n    if (!ep) return;", "    const ep = this.collect();\n    if (!ep) return;\n    // Day 1 keeps the values set above; the episode's peak pain and symptoms include every day\n    if (ep.days && ep.days.length && !ep.days.some((d) => d.date === dayKey(ep.start))) ep.days.unshift({ date: dayKey(ep.start), pain: ep.painMax, symptoms: ep.symptoms.slice() });\n    for (const d of ep.days || []) { if (d.pain > ep.painMax) ep.painMax = d.pain; for (const x of d.symptoms) if (!ep.symptoms.includes(x)) ep.symptoms.push(x); }", 'migraine merge days');
+migraine = patch(migraine, "/* ------------------------------------------------------------------ */\n/* Dashboard view", MDAYS[1] + "\n/* ------------------------------------------------------------------ */\n/* Dashboard view", 'migraine days modal methods');
+migraine = patch(migraine, "        const peak = Math.max(...eps.map((e) => e.painMax || 0));", "        const peak = Math.max(...eps.map((e) => epDayPain(e, key)));", 'migraine calendar day pain');
+migraine = patch(migraine, "      dayPain.set(k, Math.max(dayPain.get(k) || 0, e.painMax || 1));", "      dayPain.set(k, Math.max(dayPain.get(k) || 0, epDayPain(e, k) || 1));", 'migraine report day pain');
+migraine = patch(migraine, "module.exports._internals = { episodeDayKeys,", "module.exports._internals = { epDay, epDayPain, parseEpDays, episodeDayKeys,", 'migraine export days');
+
 const wrap = (name, src) =>
   '/* ' + '='.repeat(66) + ' */\n/* ' + name.padEnd(66) + ' */\n/* ' + '='.repeat(66) + ' */\n' +
   'const ' + name + ' = (function () {\nconst module = { exports: {} };\n' + src + '\nreturn module.exports;\n})();\n\n';
 
 const hub = fs.readFileSync(path.join(__dirname, 'src/hub.js'), 'utf8');
-const out = "'use strict';\n/*\n * Health Dashboard for Obsidian\n * Period, migraine, doctor visits, blood pressure, sickness, medication and A1C tracking in one plugin, with a combined dashboard.\n * Plain JavaScript, no build step needed to install. No network requests.\n */\nconst obsidian = require('obsidian');\n\n" +
+const out = "'use strict';\n/*\n * Health Dashboard for Obsidian\n * Period, migraine, doctor visits, blood pressure, sickness, medication, A1C and glucose tracking in one plugin, with a combined dashboard.\n * Plain JavaScript, no build step needed to install. No network requests.\n */\nconst obsidian = require('obsidian');\n\n" +
   wrap('PeriodModule', period) + wrap('MigraineModule', migraine) +
   wrap('VisitsModule', fs.readFileSync(path.join(__dirname, 'src/visits.js'), 'utf8')) +
   wrap('KitModule', fs.readFileSync(path.join(__dirname, 'src/kit.js'), 'utf8')) +
   wrap('BPModule', fs.readFileSync(path.join(__dirname, 'src/bp.js'), 'utf8')) +
   wrap('IllnessModule', fs.readFileSync(path.join(__dirname, 'src/illness.js'), 'utf8')) +
   wrap('MedsModule', fs.readFileSync(path.join(__dirname, 'src/meds.js'), 'utf8')) +
-  wrap('A1CModule', fs.readFileSync(path.join(__dirname, 'src/a1c.js'), 'utf8')) + hub + '\n' +
+  wrap('A1CModule', fs.readFileSync(path.join(__dirname, 'src/a1c.js'), 'utf8')) +
+  wrap('GlucoseModule', fs.readFileSync(path.join(__dirname, 'src/glucose.js'), 'utf8')) + hub + '\n' +
   fs.readFileSync(path.join(__dirname, 'src/extras.js'), 'utf8') + '\n' +
   fs.readFileSync(path.join(__dirname, 'src/reports.js'), 'utf8') + '\n' +
   fs.readFileSync(path.join(__dirname, 'src/link.js'), 'utf8') + '\n' +
@@ -324,6 +375,7 @@ const css = '/* ===== Period Tracker ===== */\n' + fs.readFileSync(path.join(per
   '\n\n/* ===== Migraine Tracker ===== */\n' + fs.readFileSync(path.join(migraineDir, 'styles.css'), 'utf8') +
   '\n\n/* ===== Doctor Visits ===== */\n' + fs.readFileSync(path.join(__dirname, 'src/visits.css'), 'utf8') +
   '\n\n/* ===== Blood pressure, Sickness, Medications ===== */\n' + fs.readFileSync(path.join(__dirname, 'src/kit.css'), 'utf8') +
-  '\n\n/* ===== Health Dashboard ===== */\n' + fs.readFileSync(path.join(__dirname, 'src/hub.css'), 'utf8');
+  '\n\n/* ===== Health Dashboard ===== */\n' + fs.readFileSync(path.join(__dirname, 'src/hub.css'), 'utf8') +
+  '\n\n/* ===== Look (matches the Finance Dashboard) ===== */\n' + fs.readFileSync(path.join(__dirname, 'src/theme.css'), 'utf8');
 fs.writeFileSync(path.join(outDir, 'styles.css'), css);
 console.log('built', out.length, 'bytes js,', css.length, 'bytes css');

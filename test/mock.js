@@ -20,6 +20,8 @@ class El {
   createSpan(o, cb) { return this.createEl('span', o, cb); }
   createSvg(tag, o) { return this.createEl(tag, o); }
   appendChild(c) { c.parent = this; this.children.push(c); return c; }
+  insertBefore(c, ref) { if (c.parent) { const k = c.parent.children.indexOf(c); if (k >= 0) c.parent.children.splice(k, 1); } c.parent = this; const i = ref ? this.children.indexOf(ref) : -1; if (i < 0) this.children.push(c); else this.children.splice(i, 0, c); return c; }
+  prepend(c) { return this.insertBefore(c, this.children.find((x) => x !== c) || null); }
   append(...cs) { cs.forEach((c) => (typeof c === 'string' ? this.appendText(c) : this.appendChild(c))); }
   appendText(t) { const e = new El('#text'); e._text = t; this.appendChild(e); }
   remove() { if (this.parent) this.parent.children = this.parent.children.filter((x) => x !== this); }
@@ -134,7 +136,7 @@ function recorder() {
   return api;
 }
 class Setting {
-  constructor(el) { this.settingEl = el.createDiv('setting-item'); this.controlEl = this.settingEl.createDiv(); this.nameEl = this.settingEl.createDiv(); this.descEl = this.settingEl.createDiv(); this.infoEl = this.settingEl.createDiv(); this.controls = []; (el.__settings = el.__settings || []).push(this); }
+  constructor(el) { this.settingEl = el.createDiv('setting-item'); this.controlEl = this.settingEl.createDiv(); this.nameEl = this.settingEl.createDiv(); this.descEl = this.settingEl.createDiv(); this.infoEl = this.settingEl.createDiv(); this.controls = []; (el.__settings = el.__settings || []).push(this); for (let a = el.parent; a; a = a.parent) if (a.__settings) { a.__settings.push(this); break; } }
   setName(n) { this.name = n; this.settingEl._text = ''; this.nameEl.setText(n); return this; } setDesc(d) { this.desc = d; return this; } setHeading() { return this; } setClass() { return this; } setTooltip() { return this; } setDisabled() { return this; }
   _add(cb) { const r = recorder(); this.controls.push(r._r); cb(r); return this; }
   addText(cb) { return this._add(cb); } addTextArea(cb) { return this._add(cb); } addToggle(cb) { return this._add(cb); } addDropdown(cb) { return this._add(cb); }
@@ -172,6 +174,8 @@ function makeApp() {
     create: async (p, content) => { const f = new TFile(p); files.set(p, { file: f, fm: parseFm(content), content }); fire(); return f; },
     createBinary: async (p, buf) => { const f = new TFile(p); files.set(p, { file: f, bin: buf }); return f; },
     modify: async (f, c) => { files.get(f.path).content = c; },
+    read: async (f) => files.get(f.path).content || '',
+    process: async (f, fn) => { const r = files.get(f.path); r.content = fn(r.content || ''); return r.content; },
     modifyBinary: async (f, b) => { files.get(f.path).bin = b; },
     createFolder: async (p) => { folders.add(p); },
     trash: async (f) => { files.delete(f.path); fire(); },

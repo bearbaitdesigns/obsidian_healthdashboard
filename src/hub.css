@@ -414,15 +414,14 @@ body.hd-no-select { user-select: none; -webkit-user-select: none; }
 .dv-since-meds { --dv-since-c: #2c6fbb; }
 .dv-since-a1c { --dv-since-c: #7a4fd0; }
 
-/* Period dashboard: symptoms and the cycle chart on top; patterns and the calendar (two columns wide) below */
+/* Period dashboard: calendar on the left beside the cycle chart; patterns under the calendar, symptoms beside them */
 .hd-panel-period { container-type: inline-size; container-name: hdpt; }
 @container hdpt (min-width: 900px) {
   .pt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .pt-grid > .pt-card-symptoms { grid-column: 1; grid-row: 1; }
+  .pt-grid > .pt-calendar { grid-column: 1; grid-row: 1; }
   .pt-grid > .pt-card-cycle { grid-column: 2 / span 2; grid-row: 1; }
   .pt-grid > .pt-card-patterns { grid-column: 1; grid-row: 2; }
-  .pt-grid > .pt-calendar { grid-column: 2 / span 2; grid-row: 2; }
-  .pt-grid > .pt-calendar .pt-cal-day { aspect-ratio: auto; height: 52px; }
+  .pt-grid > .pt-card-symptoms { grid-column: 2 / span 2; grid-row: 2; }
 }
 
 /* Hover tooltips on charts */
@@ -434,3 +433,37 @@ svg .is-tip { filter: brightness(0.88); }
 svg circle.is-tip { r: 5; stroke: var(--background-primary); stroke-width: 1.5; }
 .mt-vbar-col, .hk-hbar, .pt-hbar, .mt-hbar-row { cursor: default; }
 .mt-vbar-col:hover .mt-vbar, .hk-hbar:hover .hk-hbar-fill, .pt-hbar:hover .pt-hbar-fill, .mt-hbar-row:hover .mt-hbar { filter: brightness(0.88); }
+
+/* Glucose on the Overview and in visit summaries */
+.hd-root { --hd-glucose: #a16207; }
+.theme-dark .hd-root { --hd-glucose: #e0a93a; }
+.hd-sum.is-glucose .hd-sum-icon { color: var(--hd-glucose); }
+.hd-sum.is-glucose .hd-stat.is-accent .hd-stat-value { color: var(--hd-glucose); }
+.dv-since-glucose { --dv-since-c: #a16207; }
+
+/* Glucose dashboard: calendar on the left of the time-in-range card; charts beside lows and meter averages */
+.hd-panel-glucose { container-type: inline-size; container-name: hdgl; }
+@container hdgl (min-width: 900px) {
+  .gl-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .gl-grid > .gl-calendar { grid-column: 1; grid-row: 1; }
+  .gl-grid > .gl-c-tir { grid-column: 2 / span 2; grid-row: 1; }
+  .gl-grid > .gl-c-agp { grid-column: 1 / span 2; grid-row: 2; }
+  .gl-grid > .gl-c-lows { grid-column: 3; grid-row: 2; }
+  .gl-grid > .gl-c-avg { grid-column: 1 / span 2; grid-row: 3; }
+  .gl-grid > .gl-c-ctx { grid-column: 3; grid-row: 3; }
+}
+
+/* Migraine: day by day inside one episode */
+.mt-days { display: flex; flex-direction: column; gap: 8px; }
+.mt-day { border: 1px solid var(--background-modifier-border); border-radius: 8px; padding: 8px 10px; }
+.mt-day.is-logged { border-color: var(--hd-migraine, #4a9a2e); }
+.mt-day-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mt-day-title { font-weight: 600; min-width: 130px; }
+.mt-day-sum { flex: 1; color: var(--text-muted); font-size: var(--font-ui-small); min-width: 0; }
+.mt-day-edit { margin-top: 8px; }
+
+/* Expanded calendars: a large month in a pop-up; click outside to go back */
+.hd-expand-modal.is-calendar { width: min(1000px, 96vw); }
+.hd-expand-body .pt-cal-day, .hd-expand-body .hk-cal-day, .hd-expand-body .hd-cal-day, .hd-expand-body .mt-cal-cell { aspect-ratio: auto !important; min-height: 0; height: clamp(54px, 10vh, 110px) !important; font-size: var(--font-ui-medium); }
+.hd-expand-body .pt-cal-grid, .hd-expand-body .hk-cal-grid, .hd-expand-body .hd-cal-grid, .hd-expand-body .mt-cal { gap: 6px; }
+.hd-has-expand .hd-cal-nav, .hd-has-expand .pt-cal-nav, .hd-has-expand .hk-cal-nav, .hd-has-expand .mt-cal-head { padding-right: 30px; }

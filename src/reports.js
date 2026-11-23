@@ -26,6 +26,7 @@ function buildPeriodReport(plugin, o) {
     ['Average period length', sum.avgPeriod != null ? r1(sum.avgPeriod) + ' days' : '–', sum.maxPeriod != null ? 'longest ' + sum.maxPeriod + ' days' : ''],
     ['Bleeding days', String(sum.bleedDays), sum.heavyDays + ' heavy · ' + sum.spottingDays + ' spotting'],
     ['Average pain (bleeding days)', sum.avgPain != null ? r1(sum.avgPain) + ' / ' + PAIN_MAX : '–', sum.maxPain != null ? 'highest ' + sum.maxPain + ' (' + painWord(sum.maxPain) + ')' : ''],
+    ['Average pain (first 2 days)', sum.avgPainFirst2 != null ? r1(sum.avgPainFirst2) + ' / ' + PAIN_MAX : '–', 'day 1 and day 2 of each period'],
   ];
   if (a.last && to >= a.today && plugin.settings.showPredictions) {
     items.push(['Last period started', P.fmtDate(a.last.start), a.ongoing ? 'ongoing' : '']);
@@ -51,8 +52,8 @@ function buildPeriodReport(plugin, o) {
 
   R.heading('Period history');
   if (sum.periods.length) {
-    R.table([{ label: 'Started', w: 0.15 }, { label: 'Ended', w: 0.15 }, { label: 'Days', w: 0.08, align: 'right' }, { label: 'Cycle', w: 0.09, align: 'right' }, { label: 'Peak flow', w: 0.13 }, { label: 'Avg pain', w: 0.1, align: 'right' }, { label: 'Most common symptoms', w: 0.3, wrap: true }],
-      sum.periods.map((p) => [P.fmtDate(p.start), P.fmtDate(p.end), String(p.length), p.cycleLength == null ? 'current' : String(p.cycleLength), P.FLOW_LABEL[p.peakFlow] || '–', p.avgPain == null ? '–' : String(r1(p.avgPain)), p.topSymptoms.join(', ') || '–']),
+    R.table([{ label: 'Started', w: 0.15 }, { label: 'Ended', w: 0.15 }, { label: 'Days', w: 0.08, align: 'right' }, { label: 'Cycle', w: 0.09, align: 'right' }, { label: 'Peak flow', w: 0.12 }, { label: 'Avg pain', w: 0.09, align: 'right' }, { label: 'Days 1–2', w: 0.09, align: 'right' }, { label: 'Most common symptoms', w: 0.21, wrap: true }],
+      sum.periods.map((p) => [P.fmtDate(p.start), P.fmtDate(p.end), String(p.length), p.cycleLength == null ? 'current' : String(p.cycleLength), P.FLOW_LABEL[p.peakFlow] || '–', p.avgPain == null ? '–' : String(r1(p.avgPain)), p.painFirst2 == null ? '–' : String(r1(p.painFirst2)), p.topSymptoms.join(', ') || '–']),
       { cellColor: (ri, ci) => (ci === 4 ? FLOW_RGB[sum.periods[ri].peakFlow] || null : ci === 3 && sum.periods[ri].cycleLength != null && (sum.periods[ri].cycleLength < P.REFS.min || sum.periods[ri].cycleLength > P.REFS.max) ? warnRgb : null), boldColored: true });
   } else R.para('No periods were recorded in this range.', { color: KK.RC.muted });
 
@@ -120,7 +121,7 @@ function buildMigraineReport(plugin, o) {
     for (const e of eps) {
       for (const k of M.episodeDayKeys(e, to)) {
         if (k < fromKey || k > toKey) continue;
-        dayPain.set(k, Math.max(dayPain.get(k) || 0, e.painMax || 1));
+        dayPain.set(k, Math.max(dayPain.get(k) || 0, M.epDayPain(e, k) || 1));
         const [yy, mm] = k.split('-').map(Number);
         const mo = monthList.find((x) => x.y === yy && x.m === mm - 1);
         if (mo) mo.days.add(k);

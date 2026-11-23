@@ -1,6 +1,6 @@
 # Health Dashboard for Obsidian
 
-Seven health trackers in one plugin: period, migraine, doctor visits, blood pressure, sickness and general health, medications, and A1C. One **Health dashboard** shows everything together, and each tracker also has its own dashboard.
+Eight health trackers in one plugin: period, migraine, doctor visits, blood pressure, sickness and general health, medications, A1C and glucose. One **Health dashboard** shows everything together, and each tracker also has its own dashboard.
 
 > **Not medical advice.** Health Dashboard is a personal record-keeping tool, not a medical device. It doesn't diagnose or treat anything.
 
@@ -35,7 +35,7 @@ Open it with the **heart-pulse ribbon icon** (the only Health Dashboard icon in 
 
 | Tab | What it shows |
 |---|---|
-| **Overview** | Quick log buttons, an ongoing-migraine banner, a summary card for each tracker, a **shared calendar** and **Migraines and your cycle**. |
+| **Overview** | Quick log buttons, an ongoing-migraine banner, the **shared calendar** on the left with **Migraines and your cycle** under it, and a summary card for each tracker on the right, in your tab order. |
 | **Period** | The full Period dashboard. |
 | **Migraine** | The full Migraine dashboard. |
 | **Visits** | The full Doctor visits dashboard. |
@@ -43,6 +43,9 @@ Open it with the **heart-pulse ribbon icon** (the only Health Dashboard icon in 
 | **Sickness** | The full Sickness and general health dashboard. |
 | **Medications** | The full Medications dashboard. |
 | **A1C** | The full A1C dashboard. |
+| **Glucose** | Finger-prick and CGM glucose: time in range, daily pattern and more. |
+
+**Expand any calendar or chart.** The button in the top-right corner of a calendar or chart opens a large copy in a pop-up. Click outside it (or press Esc) to go back. Clicking a day in the large calendar does the same as on the dashboard.
 
 **Shared calendar.** Period days are shaded by flow, and predicted days have a dashed border. A green bar marks migraine days; darker means more pain. A teal dot marks doctor visits, and an orange bar at the top marks sick days. Click any day to log or edit an entry for that day.
 
@@ -150,37 +153,43 @@ These records are **never counted** in statistics, averages, predictions, charts
 
 Go to **Settings → Health Dashboard**.
 
-**Dashboards** has an on/off switch for each of the seven trackers. Changes take effect immediately, without restarting Obsidian. When a tracker is off:
+**Dashboards** lists the eight trackers in your tab order. Each row has an on/off switch; drag a row by its handle to change the order. Overview is always the first tab, and its summary cards and quick log buttons follow the same order. You can also drag the tabs on the Health dashboard itself; **Reset the order** puts them back. Changes take effect immediately, without restarting Obsidian. When a tracker is off:
 - its tab disappears from the Health dashboard, and its standalone dashboard closes
 - its commands, status bar item and settings tab are removed, and its options leave the Selectors list
 - your notes stay exactly where they are, and everything comes back when you turn it on again
 
-**Overview** chooses which trackers appear on the Overview tab. A tracker can stay on, with its own tab, while being left off the Overview. For each tracker shown on the Overview you get:
+**Overview** chooses which trackers get a summary card on the Overview tab. A tracker can stay on, with its own tab, while being left off the Overview. For each tracker shown on the Overview you get:
 - its summary card
 - its quick log buttons
 - its markings on the shared calendar: period shading, migraine bars, visit dots
 
-"Migraines and your cycle" appears only when both period and migraine tracking are shown on the Overview. If you hide everything, the Overview tells you where to turn things back on.
-
-**Arranging the dashboard.** Everything is arranged by dragging on the Health dashboard itself:
-- **Tabs:** drag any tracker tab left or right. Overview always stays first. A normal click still opens the tab.
-- **Overview:** the summary cards, the calendar, the **Migraines and your cycle** chart and your notes are free-form blocks. Each one can sit at any spot and be any width; there are no fixed columns or rows.
-  - **Move:** drag a block anywhere. Start the drag anywhere on it except its buttons and calendar days. A dashed outline shows where it will land. Blocks snap lightly to an 8-pixel grid and to the edges of nearby blocks, so things line up without effort.
-  - **Resize:** drag the small handle in a block's bottom-right corner to change its width and height. A block never gets shorter than its contents.
-  - **No overlaps:** if you drop or grow a block over another, the one underneath moves down out of the way.
-  - **Tidy up** (above the board) packs every block neatly from the top, keeping the sizes you chose. **Reset layout** puts everything back in the default columns.
-  - The quick log buttons follow the blocks from top to bottom, left to right.
-  - **Narrow screens** (phones, or a narrow pane under 600 pixels) stack the blocks in one column in the same order. There you can drag them up and down to reorder. Your free layout comes back when the pane is wide again.
-  - Prefer columns? Set **Overview layout** in settings to **Grid (columns)**. Blocks then snap into columns and you drag them into an order, as before.
-- **Touch screens:** press and hold a tab or block for a moment, then drag. A quick swipe still scrolls the page. The resize handle works straight away.
-
-The new layout is saved straight away, in pixels. The tab order and the Overview layout are separate, so A1C can be your first tab while blood pressure sits at the top of the Overview. Trackers that are turned off or hidden keep their spot for when you bring them back; a newly shown block goes into the first free space.
-
-**Calendar size.** The button in the calendar's top-right corner switches it between two columns' width and the full width, with bigger days that are easier to tap. The same switch is in settings as **Calendar takes the full width**. In the free layout you can also resize it to any width from its corner.
-
-**Starting over.** In settings, **Tab order → Reset to default order** puts the tabs back, and **Reset the Overview layout** forgets where you placed and how you sized the blocks. **Overview order** has **Use the tab order** and **Reset to default order**; both put the calendar and chart after the cards.
+The Overview has a fixed layout: the calendar on the left, **Migraines and your cycle** under it when both period and migraine tracking are shown, and the summary cards on the right with your general notes below them. On a narrow pane everything stacks in one column, calendar first.
 
 "Open the dashboard on" only lists tabs for trackers that are on, in your tab order. If the remembered tab belongs to a tracker you turned off, the dashboard opens on the Overview instead.
+
+## Period notes: one note per period
+
+Each period is one note in the log folder (`Period Tracker/Logs/Period YYYY-MM-DD.md`). Its properties list every day you logged, with flow, pain, symptoms, medications and notes, and a readable table of the days sits under the properties. You log and edit days exactly as before, from the calendar or the log window.
+- A bleeding day joins the period it continues (a gap of 2 days or less, before or after). Otherwise it starts a new period note.
+- A day without bleeding (for example symptoms mid-cycle) goes into the note of the cycle it falls in.
+- Deleting the last day of a note moves the note to the trash.
+
+**Older day notes.** Notes from before (one per day) are still read. To combine them, go to **Settings → Period Tracker → One note per period → Combine day notes**, or run **Period: Combine day notes into one note per period**. Every day keeps its details, and the old day notes go to the trash.
+
+The Symptoms card shows two pain averages: all bleeding days, and the first two days of each period. **Recent periods** and the PDF report list the first-two-days average for each period.
+
+## Migraine: pain and symptoms day by day
+
+A migraine episode is one note. For a migraine that lasts more than a day, the episode window has a **Day by day** section with one row per day. Click **Change this day** to set that day's pain and symptoms. A day you don't change keeps the values of the day before, until you change them or the migraine ends; day 1 uses the pain and symptoms set above. The days are saved in the episode note as `days` (date, pain, symptoms). The calendar shades each day by that day's pain, and the episode's peak pain and symptoms include every day. Older episodes without days stay as they are.
+
+## Glucose
+
+Open it from the **Glucose** tab or **Glucose: Open dashboard**.
+- **Log reading** for finger-prick readings (mmol/L or mg/dL, with when, device, medication or insulin, and notes). Each reading is a note in `Glucose/Readings/`.
+- **Import CGM** reads the CSV export from Dexcom Clarity, LibreView (FreeStyle Libre) and simple date, time and glucose files. Each day becomes one note in `Glucose/CGM/`; importing the same file again adds no copies.
+- **Dashboard:** latest reading, time in range, average glucose with GMI (estimated A1C from CGM), time below and above range, variability (CV), a calendar coloured by each day, time in ranges, the daily pattern by hour (median, middle 50% and 90% of readings), daily averages, lows, and meter averages by time.
+- **Target range** (Settings → Glucose): standard 3.9–10.0 mmol/L (70–180 mg/dL) from the International Consensus on Time in Range (2019), tight, pregnancy, or your doctor's range.
+- **Doctor report (PDF)** with the same figures, the daily pattern, day-by-day and meter tables, saved to `Glucose/Reports/`.
 
 ## Doctor visits
 
@@ -411,6 +420,8 @@ Their settings (folders, pain scale, predictions, reports) are under **Settings 
 - Sickness Tracker: Log sickness / I'm better (end ongoing sickness) / Create PDF report for doctor / Open dashboard / Edit this entry / Export to CSV
 - Medications: Add medication / Print medication list (PDF) / Open dashboard / Edit this medication / Export to CSV
 - A1C: Log A1C result / Create PDF report for doctor / Open dashboard / Edit this result / Export to CSV
+- Glucose: Log glucose reading / Import CGM data (CSV) / Create PDF report for doctor / Open dashboard / Edit this reading / Export to CSV
+- Period: Combine day notes into one note per period
 - All the original Period Tracker and Migraine Tracker commands
 
 ## Link to the dashboard from a note

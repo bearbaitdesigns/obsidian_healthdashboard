@@ -169,3 +169,57 @@
 .a1c-live { margin-top: 8px; min-height: 1.4em; font-size: var(--font-ui-small); }
 .a1c-up { color: var(--hk-warn); font-weight: 600; }
 .a1c-down { color: var(--bp-l0); font-weight: 600; }
+
+/* Glucose */
+.gl-dashboard { --gl-vlow: #8b1a1a; --gl-low: #d1495b; --gl-in: #2f9e6b; --gl-high: #e6a817; --gl-vhigh: #dd7a35; --gl-accent: #a16207; }
+.theme-dark .gl-dashboard { --gl-vlow: #e06c6c; --gl-low: #f07a8a; --gl-in: #4cc38a; --gl-high: #f0c048; --gl-vhigh: #f2a066; --gl-accent: #e0a93a; }
+.gl-pill { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 600; font-size: 0.85em; color: #fff; background: var(--gl-in, #2f9e6b); white-space: nowrap; }
+.gl-pill.gl-vlow { background: var(--gl-vlow, #8b1a1a); } .gl-pill.gl-low { background: var(--gl-low, #d1495b); }
+.gl-pill.gl-high { background: var(--gl-high, #e6a817); color: #3a2a00; } .gl-pill.gl-vhigh { background: var(--gl-vhigh, #dd7a35); }
+.gl-text-low { color: var(--gl-low); font-weight: 600; }
+.hk-chart .gl-band-target { fill: var(--gl-in, #2f9e6b); opacity: 0.1; }
+.hk-chart .gl-ref { stroke: var(--text-faint); stroke-dasharray: 4 3; }
+.hk-chart .gl-line { stroke: var(--gl-accent, #a16207); fill: var(--gl-accent, #a16207); stroke-width: 2.2; }
+.hk-chart polyline.gl-line { fill: none; }
+.hk-chart .gl-agp-outer { fill: #4f7fd6; opacity: 0.16; }
+.hk-chart .gl-agp-inner { fill: #4f7fd6; opacity: 0.38; }
+.hk-chart .gl-agp-median { fill: none; stroke: #1d3f8f; stroke-width: 2.4; }
+.theme-dark .hk-chart .gl-agp-median { stroke: #9bb8ff; }
+.hk-chart .gl-agp-dot { fill: #1d3f8f; }
+.theme-dark .hk-chart .gl-agp-dot { fill: #9bb8ff; }
+.hk-swatch.gl-sw-median { background: #1d3f8f; height: 3px; align-self: center; }
+.hk-swatch.gl-sw-inner { background: rgba(79, 127, 214, 0.55); }
+.hk-swatch.gl-sw-outer { background: rgba(79, 127, 214, 0.22); }
+.hk-swatch.gl-sw-target, .hk-swatch.gl-in { background: rgba(47, 158, 107, 0.35); }
+.hk-swatch.gl-high { background: rgba(230, 168, 23, 0.45); }
+.hk-swatch.gl-low { background: rgba(209, 73, 91, 0.45); }
+.hk-swatch.gl-mark { background: var(--gl-low); width: 6px; height: 6px; border-radius: 50%; align-self: center; }
+.hk-fill.gl-fill, .hk-hbar-fill.gl-fill { background: var(--gl-accent, #a16207); }
+.hk-cal-day.gl-day-in { background: rgba(47, 158, 107, 0.22) !important; }
+.hk-cal-day.gl-day-high { background: rgba(230, 168, 23, 0.3) !important; }
+.hk-cal-day.gl-day-low { background: rgba(209, 73, 91, 0.3) !important; }
+.hk-cal-day .gl-low-mark { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--gl-low, #d1495b); }
+.gl-tir { display: flex; gap: 18px; align-items: stretch; }
+.gl-tir-bar { width: 38px; flex: none; display: flex; flex-direction: column; border-radius: 6px; overflow: hidden; min-height: 210px; }
+.gl-tir-seg { flex-basis: 0; min-height: 2px; }
+.gl-tir-seg.gl-vlow, .gl-dot.gl-vlow { background: var(--gl-vlow); } .gl-tir-seg.gl-low, .gl-dot.gl-low { background: var(--gl-low); }
+.gl-tir-seg.gl-in, .gl-dot.gl-in { background: var(--gl-in); } .gl-tir-seg.gl-high, .gl-dot.gl-high { background: var(--gl-high); }
+.gl-tir-seg.gl-vhigh, .gl-dot.gl-vhigh { background: var(--gl-vhigh); }
+.gl-tir-list { flex: 1; display: flex; flex-direction: column; justify-content: space-between; min-width: 0; }
+.gl-tir-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--background-modifier-border); }
+.gl-tir-row:last-child { border-bottom: none; }
+.gl-dot { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.gl-tir-name { flex: 1; min-width: 0; font-size: var(--font-ui-small); }
+.gl-tir-name .hk-muted { font-size: var(--font-ui-smaller); }
+.gl-tir-val { text-align: right; font-size: var(--font-ui-smaller); }
+.gl-tir-pct { font-size: 1.25em; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gl-low-row { padding: 5px 0; border-bottom: 1px solid var(--background-modifier-border); font-size: var(--font-ui-small); }
+.gl-low-row:last-child { border-bottom: none; }
+.gl-import-result { margin-top: 10px; font-size: var(--font-ui-small); }
+.gl-import-error { color: var(--text-error); }
+
+/* Period: the two pain averages under Symptoms */
+.pt-pain-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--background-modifier-border); }
+.pt-pain-stat .pt-stat-label { font-size: var(--font-ui-smaller); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.pt-pain-stat .pt-stat-value { font-size: 1.25em; font-weight: 700; margin: 3px 0 1px; font-variant-numeric: tabular-nums; }
+.pt-pain-stat .pt-stat-sub { font-size: var(--font-ui-smaller); color: var(--text-muted); }

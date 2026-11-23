@@ -32,24 +32,37 @@ function note(rel, fm, body) {
 const cycleLens = [28, 27, 30, 38, 26, 29, 28, 31, 27];
 const periodStarts = [];
 for (let k = add(START, 3), i = 0; k <= END; k = add(k, cycleLens[i % cycleLens.length]), i++) periodStarts.push(k);
+// One note per period: each note lists its days (flow, pain, symptoms); a few pre-period days belong to the cycle before
+const periodNotes = [];
 for (const [ci, st] of periodStarts.entries()) {
   const len = ci === 5 ? 8 : 4 + Math.floor(rnd() * 3); // one 8-day period
   const flows = ['medium', 'heavy', 'heavy', 'medium', 'light', 'light', 'light', 'spotting'];
+  const days = [];
   for (let i = 0; i < len; i++) {
     const d = add(st, i);
     if (d > END) break;
     const flow = i === len - 1 && len > 4 ? 'spotting' : flows[Math.min(i, flows.length - 2)];
     const pain = i === 0 ? 3 + (chance(0.35) ? 1 : 0) : i === 1 ? 2 + (chance(0.4) ? 1 : 0) : i < 3 ? 1 : 0;
-    note('Period Tracker/Logs/' + d + '.md', {
-      type: 'period-log', date: d, flow, pain,
-      symptoms: i < 2 ? some(['Cramps', 'Bloating', 'Fatigue', 'Headache', 'Back pain', 'Mood swings'], 1, 3) : i < 3 ? ['Fatigue'] : [],
-      medications: i === 0 || (i === 1 && chance(0.5)) ? ['Ibuprofen'] : [],
-      notes: i === 0 && ci === 3 ? 'Late this month, cycle felt long.' : '',
-    });
+    const day = { date: d, flow, pain, symptoms: i < 2 ? some(['Cramps', 'Bloating', 'Fatigue', 'Headache', 'Back pain', 'Mood swings'], 1, 3) : i < 3 ? ['Fatigue'] : [], medications: i === 0 || (i === 1 && chance(0.5)) ? ['Ibuprofen'] : [] };
+    if (i === 0 && ci === 3) day.notes = 'Late this month, cycle felt long.';
+    days.push(day);
   }
-  // a couple of days of pre-period symptoms, no bleeding
   const pre = add(st, -2);
-  if (pre >= START && pre <= END && chance(0.6)) note('Period Tracker/Logs/' + pre + '.md', { type: 'period-log', date: pre, flow: 'none', pain: 1, symptoms: ['Bloating', 'Breast tenderness'], medications: [] });
+  if (pre >= START && pre <= END && chance(0.6)) {
+    const day = { date: pre, flow: 'none', pain: 1, symptoms: ['Bloating', 'Breast tenderness'], medications: [] };
+    if (periodNotes.length) periodNotes[periodNotes.length - 1].days.push(day); else days.unshift(day);
+  }
+  if (days.length) periodNotes.push({ start: st, days });
+}
+const FLOWL = { none: 'None', spotting: 'Spotting', light: 'Light', medium: 'Medium', heavy: 'Heavy' };
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dlab = (k) => Number(k.slice(8)) + ' ' + MON[Number(k.slice(5, 7)) - 1] + ' ' + k.slice(0, 4);
+for (const pn of periodNotes) {
+  pn.days.sort((a, b) => a.date.localeCompare(b.date));
+  const bleed = pn.days.filter((d) => d.flow === 'light' || d.flow === 'medium' || d.flow === 'heavy').map((d) => d.date);
+  const table = '<!-- period-days:start -->\n| Day | Flow | Pain | Symptoms | Medications | Notes |\n| --- | --- | --- | --- | --- | --- |\n' +
+    pn.days.map((d) => '| ' + [dlab(d.date), FLOWL[d.flow], d.pain + '/5', d.symptoms.join(', '), d.medications.join(', '), d.notes || ''].join(' | ') + ' |').join('\n') + '\n<!-- period-days:end -->';
+  note('Period Tracker/Logs/Period ' + pn.start + '.md', { type: 'period', start: bleed[0], end: bleed[bleed.length - 1], days: pn.days, tags: ['period'] }, '# Period · ' + dlab(pn.start) + '\n\n' + table + '\n');
 }
 
 /* ---------------- Migraine: about 3–5 a month, several around period day 1 ---------------- */
@@ -180,6 +193,34 @@ const notes = [
 for (const [t, off, title, text] of notes) {
   const d = add(END, off);
   note('Health Notes/Notes/' + { general: 'General', migraine: 'Migraine', bp: 'Blood pressure', period: 'Period', a1c: 'A1C', meds: 'Medications' }[t] + '/' + d + ' ' + title + '.md', { entry: 'health-note', tracker: t, date: d, title, note: text });
+}
+
+/* ---------------- Glucose: fasting and after-dinner meter readings, plus 14 days of CGM ---------------- */
+for (let i = -200; i <= 0; i++) {
+  const d = add(END, i);
+  if (chance(0.55)) {
+    const mmol = Math.round((5.6 + (rnd() - 0.5) * 1.2 - (i + 200) * 0.002) * 10) / 10;
+    note('Glucose/Readings/' + d + ' 0715 Glucose.md', { entry: 'glucose-reading', date: d, time: '07:15', glucose_mg_dl: Math.round(mmol * 18.016), glucose_mmol_l: mmol, context: 'Fasting', device: 'Finger-prick meter', tags: ['glucose'] });
+  }
+  if (chance(0.35)) {
+    const mmol = Math.round((7.4 + (rnd() - 0.4) * 3) * 10) / 10;
+    note('Glucose/Readings/' + d + ' 2030 Glucose.md', { entry: 'glucose-reading', date: d, time: '20:30', glucose_mg_dl: Math.round(mmol * 18.016), glucose_mmol_l: mmol, context: 'After meal', device: 'Finger-prick meter', notes: chance(0.2) ? 'Pasta for dinner.' : '', tags: ['glucose'] });
+  }
+}
+for (let i = -13; i <= 0; i++) {
+  const d = add(END, i);
+  const pts = [];
+  for (let m = 0; m < 1440; m += 5) {
+    const h = m / 60;
+    let mg = 105 + 8 * Math.sin((h / 24) * 2 * Math.PI);
+    for (const [meal, size] of [[7.5, 55], [12.5, 65], [19, 85]]) { const dt = h - meal; if (dt > 0 && dt < 3) mg += size * Math.sin((dt / 3) * Math.PI) * (0.8 + 0.4 * ((i * 7 + meal) % 3) / 2); }
+    mg += (rnd() - 0.5) * 12;
+    if (i === -6 && h > 2.5 && h < 3.2) mg = 62 + (rnd() - 0.5) * 6; // one overnight low
+    if (i === -2 && h > 19 && h < 21.5) mg += 70; // a high after a big dinner
+    pts.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0') + ' ' + Math.round(mg));
+  }
+  const vals = pts.map((x) => Number(x.split(' ')[1]));
+  note('Glucose/CGM/' + d + ' CGM.md', { entry: 'glucose-cgm-day', date: d, device: 'FreeStyle Libre', source_file: 'LibreView export.csv', readings: pts.length, average_mg_dl: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length), readings_mg_dl: pts.join('; '), tags: ['glucose', 'cgm'] }, '# CGM readings · ' + d + '\n');
 }
 
 /* ---------------- Records without an exact date ---------------- */

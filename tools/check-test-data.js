@@ -3,7 +3,7 @@ process.env.FAKE_NOW = process.env.FAKE_NOW || '2026-11-12T15:00:00';
 require('../test/clock');
 const fs = require('fs'); const path = require('path'); const YAML = require('yaml');
 const mock = require('../test/mock'); const { makeApp, registry } = mock;
-const Plugin = require(path.resolve('dist/main.js'));
+const Plugin = require(path.resolve('health-dashboard/main.js'));
 const DIR = process.argv[2];
 const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]));
 (async () => {
@@ -22,7 +22,7 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e
   console.log('notes', n);
   console.log('period: periods', a.periods.length, 'avg cycle', a.avgCycle && a.avgCycle.toFixed(1), 'cycles', a.periods.map((p) => p.cycleLength).join(','));
   const eps = host.migraine.getEpisodes();
-  console.log('migraine: episodes', eps.length, 'aura', eps.filter(require('../dist/main.js')._internals ? () => false : () => false).length, 'ongoing', eps.filter((e) => !e.end).length);
+  console.log('migraine: episodes', eps.length, 'aura', eps.filter(require('../health-dashboard/main.js')._internals ? () => false : () => false).length, 'ongoing', eps.filter((e) => !e.end).length);
   const B = host.bp.getRecords(); console.log('bp readings', B.length, 'from', B.map((r) => r.date).sort()[0]);
   console.log('illness', host.illness.getRecords().length, 'meds', host.meds.getRecords().length, 'current', host.meds.current().length, 'a1c', host.a1c.getRecords().length, 'visits', host.visits.getVisits().length);
   console.log('notes', host.getNotes ? host.getNotes().length : '?', 'missed', ['period', 'migraine'].map((k) => host.getMissed(k).length).join('/'));

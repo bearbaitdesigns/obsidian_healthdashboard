@@ -44,8 +44,8 @@ const pdfText = (bytes, name) => { const f = path.join(__dirname, name); fs.writ
   await registry.commands['health-dashboard:open-dashboard'].callback();
   const root = app.workspace.getLeavesOfType('health-dashboard')[0].view.contentEl;
   root.querySelectorAll('.hd-tab')[0].click();
-  const ovNotes = root.querySelector('.hd-board').children.find((c) => c.attrs['data-key'] === 'notes');
-  assert(ovNotes && ovNotes.cls.has('hd-sortable'), 'Overview notes block is draggable');
+  const ovNotes = root.querySelector('.hd-home-right').querySelector('.hd-x-notes');
+  assert(ovNotes, 'Overview shows general notes under the cards');
   Modal.opened.length = 0;
   registry.commands['health-dashboard:add-note'].callback();
   m = lastModal(); m.textIn.value = 'Moved house in October; sleeping badly since.'; m.dateIn.value = daysAgo(20);
