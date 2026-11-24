@@ -21,10 +21,15 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   m.startInput.value = '2026-11-03'; m.endInput.value = '2026-11-05'; m.updateDuration();
   let days = m.daysBox.querySelectorAll('.mt-day');
   assert.strictEqual(days.length, 3, 'one row per day');
-  days[0].querySelector('button').click();
+  assert(days.every((r) => r.querySelector('.mt-day-body').cls.has('is-hidden')), 'days start collapsed');
+  days[2].querySelector('.mt-day-toggle').click();
+  assert(!m.daysBox.querySelectorAll('.mt-day')[2].querySelector('.mt-day-body').cls.has('is-hidden'), 'the arrow expands a day');
+  m.daysBox.querySelectorAll('.mt-day')[2].querySelector('.mt-day-toggle').click();
+  days = m.daysBox.querySelectorAll('.mt-day');
+  days[0].querySelectorAll('button').find((b) => b.cls.has('mt-small-btn')).click();
   const st1 = m.dayState.get('2026-11-03'); st1.pain = 3; st1.symptoms = ['Nausea']; m.renderDays();
   days = m.daysBox.querySelectorAll('.mt-day');
-  days[1].querySelector('button').click();
+  days[1].querySelectorAll('button').find((b) => b.cls.has('mt-small-btn')).click();
   const st2 = m.dayState.get('2026-11-04'); assert(st2, 'day 2 now logged');
   st2.pain = 5; st2.symptoms = ['Nausea', 'Light sensitivity']; st2.relief = ['Sleep']; m.renderDays();
   const text = m.daysBox.textContent;
@@ -64,8 +69,8 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   assert.strictEqual(app.__files.get(on.file.path).fm.pain_avg, 4);
   // resetting a day removes it
   const m3 = new MM.EpisodeModal(mig, ep); m3.open();
-  m3.daysBox.querySelectorAll('.mt-day')[1].querySelector('button').click();
-  m3.daysBox.querySelectorAll('.mt-day')[0].querySelector('button').click();
+  m3.daysBox.querySelectorAll('.mt-day')[1].querySelectorAll('button').find((b) => b.cls.has('mt-small-btn')).click();
+  m3.daysBox.querySelectorAll('.mt-day')[0].querySelectorAll('button').find((b) => b.cls.has('mt-small-btn')).click();
   m3.medRowEls.forEach((r) => { r.name.value = ''; });
   await m3.save(); await flush();
   assert(!('days' in app.__files.get(f).fm), 'days removed when all reset');
@@ -131,7 +136,7 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   // delete a day: in the episode window (first day moves the start) and from the day window (last day moves the end)
   const three = new (PluginClass._migraine.EpisodeModal)(mig); three.open();
   three.startInput.value = '2026-09-10'; three.endInput.value = '2026-09-12'; three.updateDuration();
-  for (const k of [0, 1, 2]) { three.daysBox.querySelectorAll('.mt-day')[k].querySelector('button').click(); }
+  for (const k of [0, 1, 2]) { three.daysBox.querySelectorAll('.mt-day')[k].querySelectorAll('button').find((b) => b.cls.has('mt-small-btn')).click(); }
   three.daysBox.querySelectorAll('.mt-day')[0].querySelector('.mt-day-del').click();
   assert.strictEqual(three.startInput.value, '2026-09-11', 'first day deleted moves the start');
   assert.strictEqual(three.daysBox.querySelectorAll('.mt-day').length, 2);

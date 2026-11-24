@@ -138,23 +138,34 @@ EpisodeModal.prototype.renderDays = function () {
     const logged = this.dayState.get(key);
     const base = i === 0 ? { pain: this.ep.painMax == null ? Math.ceil(PAIN_MAX * 0.6) : this.ep.painMax, symptoms: this.ep.symptoms || [], headLocation: this.ep.headLocation || [] } : prev;
     const cur = logged ? { pain: logged.pain != null ? logged.pain : base.pain, symptoms: logged.symptoms, headLocation: logged.headLocation || [] } : base;
-    const row = box.createDiv({ cls: 'mt-day' + (logged ? ' is-logged' : '') });
+    this.openDays = this.openDays || new Set();
+    const isOpen = this.openDays.has(key);
+    const row = box.createDiv({ cls: 'mt-day' + (logged ? ' is-logged' : '') + (isOpen ? ' is-open' : '') });
     const head = row.createDiv({ cls: 'mt-day-head' });
-    head.createSpan({ cls: 'mt-day-title', text: 'Day ' + (i + 1) + ' · ' + fmtDate(parseDT(key)) });
+    // each day is collapsed; the arrow (or the day's title) opens it
+    const tog = head.createEl('button', { cls: 'mt-icon-btn mt-day-toggle', attr: { type: 'button', 'aria-label': isOpen ? 'Collapse this day' : 'Expand this day', 'aria-expanded': String(isOpen) } });
+    setIcon(tog, isOpen ? 'chevron-down' : 'chevron-right');
+    const flip = () => { if (isOpen) this.openDays.delete(key); else this.openDays.add(key); this.renderDays(); };
+    tog.onclick = flip;
+    const ttl = head.createSpan({ cls: 'mt-day-title', text: 'Day ' + (i + 1) + ' · ' + fmtDate(parseDT(key)) });
+    ttl.onclick = flip;
     const pill = head.createSpan({ cls: 'mt-pain-pill', text: (cur.pain == null ? '–' : cur.pain) + '/' + PAIN_MAX });
     if (cur.pain) pill.style.background = painColor(cur.pain, 0.75);
-    head.createSpan({ cls: 'mt-day-sum', text: [cur.headLocation.join(', '), cur.symptoms.join(', ') || 'No symptoms'].filter(Boolean).join(' · ') + (logged ? '' : i === 0 ? ' · not logged yet' : ' · same as day ' + i) });
+    const dayMeds = (this.medState || []).filter((m) => m.date === key && String(m.name || '').trim()).length;
+    head.createSpan({ cls: 'mt-day-sum', text: [cur.headLocation.join(', '), cur.symptoms.join(', ') || 'No symptoms', dayMeds ? (dayMeds === 1 ? '1 medication' : dayMeds + ' medications') : ''].filter(Boolean).join(' · ') + (logged ? '' : i === 0 ? ' · not logged yet' : ' · same as day ' + i) });
     const btn = head.createEl('button', { cls: 'mt-small-btn', text: logged ? (i === 0 ? 'Clear this day' : 'Same as day ' + i) : 'Change this day', attr: { type: 'button' } });
     const del = head.createEl('button', { cls: 'mt-icon-btn mt-day-del', attr: { type: 'button', 'aria-label': 'Delete this day' } });
     setIcon(del, 'trash-2');
     del.onclick = () => this.deleteDay(key, i, n);
     btn.onclick = () => {
       if (logged) this.dayState.delete(key);
-      else this.dayState.set(key, { date: key, pain: cur.pain, symptoms: cur.symptoms.slice(), headLocation: cur.headLocation.slice(), relief: [], notes: '' });
+      else { this.dayState.set(key, { date: key, pain: cur.pain, symptoms: cur.symptoms.slice(), headLocation: cur.headLocation.slice(), relief: [], notes: '' }); this.openDays.add(key); }
       this.renderDays();
     };
+    const body = row.createDiv({ cls: 'mt-day-body' });
+    if (!isOpen) body.addClass('is-hidden');
     if (logged) {
-      const ed = row.createDiv({ cls: 'mt-day-edit' });
+      const ed = body.createDiv({ cls: 'mt-day-edit' });
       this.painSelector(ed, 'Pain', cur.pain == null ? 0 : cur.pain, (v) => { logged.pain = v; this.renderDays(); });
       ed.createDiv({ cls: 'mt-label', text: 'Where it hurt' });
       new ChipSelect(ed, { options: s.headLocations, selected: logged.headLocation || [], onChange: (v) => { logged.headLocation = v.slice(); } });
@@ -168,7 +179,7 @@ EpisodeModal.prototype.renderDays = function () {
       ta.addEventListener('input', () => { logged.notes = ta.value; });
     }
     // medications are kept with their day, whether or not the rest of the day changed
-    const md = row.createDiv({ cls: 'mt-day-meds' });
+    const md = body.createDiv({ cls: 'mt-day-meds' });
     md.createDiv({ cls: 'mt-label', text: 'Medications' });
     this.medRows = md.createDiv({ cls: 'mt-med-rows' });
     const mine = (this.medState || []).filter((m) => (m.date || keys[0]) === key || (i === 0 && (!m.date || m.date < keys[0])) || (i === n - 1 && m.date > keys[n - 1]));
