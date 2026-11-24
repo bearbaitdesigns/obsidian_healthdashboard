@@ -48,6 +48,10 @@ const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
   await grab('help-bp', () => v.contentEl.querySelector('.hd-help-btn').onclick(), 'bp');
   await grab('add-note', () => registry.commands['health-dashboard:add-note'].callback(), 'overview');
   await grab('missed-migraine', () => (registry.commands['health-dashboard:missed-migraine'].callback || registry.commands['health-dashboard:missed-migraine'].checkCallback)(false), 'migraine');
+  await grab('log-glucose', () => registry.commands['glucose-tracker:log-reading'].callback(), 'glucose');
+  await grab('import-cgm', () => registry.commands['glucose-tracker:import-cgm'].callback(), 'glucose');
+  await grab('add-med', () => registry.commands['medication-list:add-medication'].callback(), 'meds');
+  try { const st = registry.settingTabs.find((t) => t.plugin === host) || registry.settingTabs[0]; st.display(); await wait(200); pages.settings = '<div class="vertical-tab-content" style="max-width:760px">' + html(st.containerEl) + '</div>'; } catch (e) { console.log('settings', e.message); }
   v.renderer.setTab('overview'); await wait();
 
   const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
@@ -93,6 +97,7 @@ const wait = (ms = 120) => new Promise((r) => setTimeout(r, ms));
   await shot('overview', pages.overview, { board: true, clip: { x: 0, y: 0, width: 1180, height: 1500 } });
   await shot('overview-top', pages.overview, { board: true, clip: { x: 0, y: 0, width: 1180, height: 330 } });
   for (const t of ['period', 'migraine', 'visits', 'bp', 'illness', 'meds', 'a1c', 'glucose']) await shot('tab-' + t, pages[t], { clip: { x: 0, y: 0, width: 1180, height: 1250 } });
+  if (pages.settings) await shot('settings', pages.settings, { full: true, width: 860 });
   await shot('tab-bp-top', pages.bp, { clip: { x: 0, y: 0, width: 1180, height: 210 } });
   if (process.env.LIVE) {
     const tipJs = main.slice(main.indexOf('/* ---------------- Hover tooltips'), main.indexOf('/* ---------------- Same header'));

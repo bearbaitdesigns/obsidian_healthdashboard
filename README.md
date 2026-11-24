@@ -4,6 +4,10 @@ Eight health trackers in one plugin: period, migraine, doctor visits, blood pres
 
 > **Not medical advice.** Health Dashboard is a personal record-keeping tool, not a medical device. It doesn't diagnose or treat anything.
 
+## User guide
+
+The **[user guide (PDF)](docs/Health%20Dashboard%20-%20User%20guide.pdf)** explains how to log and edit data, read every stat and chart, create PDF reports, change settings and keep your dashboards up to date. It ends with a glossary of the terms used.
+
 ## Install with BRAT (recommended)
 
 [BRAT](https://github.com/TfTHacker/obsidian42-brat) installs plugins straight from GitHub and keeps them up to date.
