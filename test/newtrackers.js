@@ -122,7 +122,7 @@ async function seedNew(app) {
   const mdEl = app.workspace.getLeavesOfType('medications-dashboard')[0].view.contentEl;
   t = text(mdEl);
   console.log('Meds tiles:', mdEl.querySelectorAll('.hk-tile').map((x) => x.textContent).join(' | '));
-  for (const s of ['Refills', 'Daily schedule', 'Scheduled (2)', 'As needed (1)', 'Past medications (1)', 'Side effects']) assert(t.includes(s), 'meds missing ' + s);
+  for (const s of ['Refills', 'Daily schedule', 'Medications', 'Supplements and over the counter', 'Scheduled (1)', 'As needed (1)', 'Past medications (1)', 'Side effects']) assert(t.includes(s), 'meds missing ' + s);
   console.log('schedule:', mdEl.querySelector('.med-schedule').children.map((c) => c.textContent).join(' || '));
   // add medication with prescriber from visits
   Modal.opened.length = 0;
@@ -157,7 +157,7 @@ async function seedNew(app) {
   await m.go([['365', 'Last 12 months']]); await flush();
   const lp = [...app.__files.keys()].find((k) => k.startsWith('Medications/Reports/'));
   const lt = pdfText(app, lp);
-  assert(lt.includes('(Medication list)') && lt.includes('Magnesium') && lt.includes('Propranolol') && lt.includes('Taken as needed'));
+  assert(lt.includes('(Medication list)') && lt.includes('Magnesium') && lt.includes('Propranolol') && lt.includes('Medications · taken as needed') && lt.includes('Supplements and over the counter · taken regularly'));
   host.meds.settings.allergies = 'Penicillin (rash)'; await host.meds.saveSettings(); await flush();
   assert(text(mdEl).includes('Penicillin'));
 

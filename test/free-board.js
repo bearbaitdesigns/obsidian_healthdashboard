@@ -1,7 +1,7 @@
 // Real-browser test of the free-form Overview: move, push-down, resize, tidy, reset, narrow stacking, persistence
 const fs = require('fs'); const path = require('path'); const assert = require('assert');
 const { chromium } = require('playwright');
-const src = fs.readFileSync('dist/main.js', 'utf8');
+const src = fs.readFileSync('health-dashboard/main.js', 'utf8');
 const cut = (a, b) => src.slice(src.indexOf(a), src.indexOf(b));
 const helpers = cut('/* sortable:start */', '/* sortable:end */') + cut('/* freeboard:start */', '/* freeboard:end */');
 let html = fs.readFileSync('test/out-board-light.html', 'utf8');

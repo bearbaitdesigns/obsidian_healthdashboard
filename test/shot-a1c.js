@@ -1,6 +1,6 @@
 const path = require('path'); const fs = require('fs');
 const { registry, makeApp } = require('./mock'); const { seed } = require('./run-seed'); const { seedNew, daysAgo } = require('./seed-new');
-const PluginClass = require(path.resolve('dist/main.js'));
+const PluginClass = require(path.resolve('health-dashboard/main.js'));
 const src = fs.readFileSync('test/shot.js', 'utf8');
 eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
 (async () => {
@@ -12,12 +12,12 @@ eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
   await new Promise(r => setTimeout(r, 400));
   await registry.commands['health-dashboard:open-dashboard'].callback();
   const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
   const extra = '.clickable-icon{background:transparent;box-shadow:none;padding:4px}';
   v.contentEl.querySelectorAll('.hd-tab').find((b) => b.textContent === 'A1C').click();
   for (const th of ['light', 'dark']) fs.writeFileSync('test/out-a1c-' + th + '.html', `<!doctype html><meta charset=utf-8><style>${vars}${css}${extra}</style><body class="theme-${th}">${html(v.contentEl)}</body>`);
-  const A = require(path.resolve('dist/main.js'))._a1c;
+  const A = require(path.resolve('health-dashboard/main.js'))._a1c;
   fs.writeFileSync('A1C report (sample).pdf', Buffer.from(A.buildReport(host.a1c, { from: '', to: daysAgo(0), name: 'Sample Person', notes: 'Is 6.4% good enough to reduce the medication dose?', includeMeds: true })));
   process.exit(0);
 })();

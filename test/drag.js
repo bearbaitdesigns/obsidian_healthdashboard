@@ -1,9 +1,9 @@
 // Runs the real makeSortable code from the built plugin in Chromium and drags with mouse and touch
 const fs = require('fs'); const path = require('path');
 const { chromium } = require('playwright');
-const src = fs.readFileSync(path.resolve(process.argv[2] || 'dist/main.js'), 'utf8');
+const src = fs.readFileSync(path.resolve(process.argv[2] || 'health-dashboard/main.js'), 'utf8');
 const helper = src.slice(src.indexOf('/* sortable:start */'), src.indexOf('/* sortable:end */'));
-const css = fs.readFileSync(path.resolve('dist/styles.css'), 'utf8');
+const css = fs.readFileSync(path.resolve('health-dashboard/styles.css'), 'utf8');
 const page = `<!doctype html><meta charset=utf-8><style>${css}
 body{font-family:sans-serif;margin:20px} .hd-tabs{display:flex;gap:4px;flex-wrap:wrap;width:520px} .hd-tab{padding:8px 14px}
 .hd-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:600px;margin-top:30px} .hd-sortable{height:80px;border:1px solid #999;padding:8px}</style>

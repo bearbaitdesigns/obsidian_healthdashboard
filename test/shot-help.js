@@ -2,7 +2,7 @@
 require('./clock');
 const path = require('path'); const fs = require('fs');
 const mock = require('./mock'); const { registry, makeApp } = mock;
-const PluginClass = require(path.resolve('dist/main.js'));
+const PluginClass = require(path.resolve('health-dashboard/main.js'));
 const src = fs.readFileSync('test/shot.js', 'utf8');
 eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
 const { seed } = require('./run-seed'); const { seedNew } = require('./seed-new');
@@ -14,7 +14,7 @@ const OUT = process.argv[2] || 'test';
   await new Promise((r) => setTimeout(r, 400));
   await registry.commands['health-dashboard:open-dashboard'].callback();
   const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
   const extra = `.clickable-icon{background:transparent;border:0;box-shadow:none;padding:4px;cursor:pointer;color:var(--text-muted)} button{font:inherit;padding:4px 12px;border-radius:6px;border:1px solid var(--background-modifier-border);background:var(--background-primary)} button.mod-cta{background:var(--interactive-accent);color:#fff;border:0}
   .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40}.modal{position:fixed;left:50%;top:30px;transform:translateX(-50%);background:var(--background-primary);border-radius:12px;padding:20px 24px;z-index:41;box-shadow:0 20px 50px rgba(0,0,0,.3);max-height:calc(100vh - 60px);overflow:auto;box-sizing:border-box}.modal-title{font-weight:700;font-size:18px;margin-bottom:10px}
@@ -41,7 +41,7 @@ const OUT = process.argv[2] || 'test';
   await p.setContent(page(migModal)); await p.setViewportSize({ width: 1000, height: 2300 }); await p.screenshot({ path: OUT + '/help-5-migraine-window.png' }); await p.setViewportSize({ width: 1000, height: Math.min(2400, mh + 70) });
   for (const th of ['dark']) { await p.setContent(page(bpHtml + modal, th)); await p.screenshot({ path: OUT + '/help-2-bp-window-dark.png' }); }
   // expand: run the real addExpanders + ExpandModal in the browser with small Obsidian shims
-  const main = fs.readFileSync('dist/main.js', 'utf8');
+  const main = fs.readFileSync('health-dashboard/main.js', 'utf8');
   const code = main.slice(main.indexOf('/* ---------------- Expand any chart'));
   await p.setViewportSize({ width: 1000, height: 900 });
   await p.setContent(page(bpHtml));

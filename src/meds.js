@@ -148,6 +148,10 @@ class StopModal extends K.FormModal {
 }
 
 /* ---------------- Dashboard ---------------- */
+/** Supplements and over-the-counter medicines are listed apart from prescribed medications */
+const isOtc = (m) => /supplement|over.the.counter|\botc\b|vitamin|herbal/i.test(m.kind || '');
+const OTC_LABEL = 'Supplements and over the counter';
+
 class MedsRenderer {
   constructor(plugin, el) { this.plugin = plugin; this.el = el; this.q = ''; }
   render() {
@@ -176,7 +180,8 @@ class MedsRenderer {
     const due = cur.filter((m) => m.refill && K.daysBetween(today, m.refill) <= warn).sort((a, b) => a.refill.localeCompare(b.refill));
     const d90 = K.addDaysKey(today, -90);
     const tile = K.tiles(el);
-    tile('Taking now', String(cur.length), sched.length + ' scheduled · ' + prn.length + ' as needed');
+    const nOtc = cur.filter(isOtc).length;
+    tile('Taking now', String(cur.length), K.plural(cur.length - nOtc, 'medication') + ' · ' + nOtc + ' supplements and OTC');
     tile('Refills due', String(due.length), due.length ? 'Next: ' + title(due[0]) + ' ' + K.relDays(due[0].refill, today) : 'Within ' + K.plural(warn, 'day'), due.some((m) => m.refill < today) ? 'is-warn' : due.length ? 'is-accent' : '');
     tile('Started · last 90 days', String(all.filter((m) => m.started && m.started > d90 && m.started <= today).length), '');
     tile('Stopped · last 90 days', String(past.filter((m) => m.stopped > d90).length), '');
@@ -217,25 +222,35 @@ class MedsRenderer {
       lists.empty();
       const q = this.q.trim().toLowerCase();
       const hit = (m) => !q || [m.name, m.strength, m.purposes.join(' '), m.prescriber, m.notes, m.sideEffects].join(' ').toLowerCase().includes(q);
-      const section = (label, list) => {
-        if (!list.length) return;
-        lists.createDiv({ cls: 'hk-section-heading', text: label + ' (' + list.length + ')' });
-        const g = lists.createDiv({ cls: 'med-cards' });
-        for (const m of list) this.medCard(g, m, today);
+      const group = (label, icon, list) => {
+        const sc = list.filter((m) => !isAsNeeded(m) && hit(m)), pn = list.filter((m) => isAsNeeded(m) && hit(m));
+        if (!sc.length && !pn.length) return;
+        const box = lists.createDiv({ cls: 'med-group' });
+        const h = box.createDiv({ cls: 'med-group-heading' });
+        setIcon(h.createSpan({ cls: 'med-group-icon' }), icon);
+        h.createSpan({ text: label });
+        h.createSpan({ cls: 'med-group-count', text: String(sc.length + pn.length) });
+        for (const [sub, l] of [['Scheduled', sc], ['As needed', pn]]) {
+          if (!l.length) continue;
+          box.createDiv({ cls: 'hk-section-heading', text: sub + ' (' + l.length + ')' });
+          const g = box.createDiv({ cls: 'med-cards' });
+          for (const m of l) this.medCard(g, m, today);
+        }
       };
-      section('Scheduled', sched.filter(hit));
-      section('As needed', prn.filter(hit));
+      group('Medications', 'pill', cur.filter((m) => !isOtc(m)));
+      group(OTC_LABEL, 'leaf', cur.filter(isOtc));
       const pf = past.filter(hit);
       if (pf.length) {
         lists.createDiv({ cls: 'hk-section-heading', text: 'Past medications (' + pf.length + ')' });
         const box = lists.createDiv({ cls: 'hk-card hk-table-card' });
         const t = box.createEl('table', { cls: 'hk-table' });
         const hr = t.createEl('thead').createEl('tr');
-        for (const h of ['Medication', 'For', 'Taken', 'How long', 'Why stopped', '']) hr.createEl('th', { text: h });
+        for (const h of ['Medication', 'Type', 'For', 'Taken', 'How long', 'Why stopped', '']) hr.createEl('th', { text: h });
         const tb = t.createEl('tbody');
         for (const m of pf) {
           const tr = tb.createEl('tr');
           tr.createEl('td', { text: title(m) });
+          tr.createEl('td', { text: m.kind || '–' });
           tr.createEl('td', { text: m.purposes.join(', ') || '–' });
           tr.createEl('td', { text: (m.started ? K.fmtKey(m.started) : '?') + ' – ' + K.fmtKey(m.stopped) });
           tr.createEl('td', { text: m.started ? K.durationText(K.daysBetween(m.started, m.stopped) + 1) : '–' });
@@ -294,11 +309,17 @@ function buildList(plugin, o) {
   R.note('Allergies and intolerances: ' + (s.allergies || 'none recorded'), !!s.allergies);
   const cols = [{ label: 'Medication', w: 0.24, wrap: true }, { label: 'How to take', w: 0.3, wrap: true }, { label: 'For', w: 0.18, wrap: true }, { label: 'Prescriber', w: 0.15, wrap: true }, { label: 'Since', w: 0.13 }];
   const row = (m) => [[title(m), m.form].filter(Boolean).join(', '), [howTo(m), m.instructions].filter(Boolean).join('. '), m.purposes.join(', '), m.prescriber, m.started ? K.fmtKey(m.started) : ''];
-  const sched = cur.filter((m) => !isAsNeeded(m)), prn = cur.filter(isAsNeeded);
-  R.heading('Taken regularly');
-  if (sched.length) R.table(cols, sched.map(row)); else R.para('None.', { color: K.RC.muted });
-  R.heading('Taken as needed');
-  if (prn.length) R.table(cols, prn.map(row)); else R.para('None.', { color: K.RC.muted });
+  const rx = cur.filter((m) => !isOtc(m)), otc = cur.filter(isOtc);
+  R.heading('Medications · taken regularly');
+  const rs = rx.filter((m) => !isAsNeeded(m)), rp = rx.filter(isAsNeeded);
+  if (rs.length) R.table(cols, rs.map(row)); else R.para('None.', { color: K.RC.muted });
+  R.heading('Medications · taken as needed');
+  if (rp.length) R.table(cols, rp.map(row)); else R.para('None.', { color: K.RC.muted });
+  if (otc.length) {
+    const os = otc.filter((m) => !isAsNeeded(m)), op = otc.filter(isAsNeeded);
+    if (os.length) { R.heading(OTC_LABEL + ' · taken regularly'); R.table(cols, os.map(row)); }
+    if (op.length) { R.heading(OTC_LABEL + ' · taken as needed'); R.table(cols, op.map(row)); }
+  }
   if (o.includePast) {
     const yearAgo = K.addDaysKey(today, -365);
     const past = all.filter((m) => !isCurrent(m, today) && m.stopped >= yearAgo).sort((a, b) => b.stopped.localeCompare(a.stopped));
@@ -391,4 +412,4 @@ class MedicationsPlugin extends K.TrackerPlugin {
 }
 
 module.exports = MedicationsPlugin;
-module.exports._internals = { VIEW_TYPE, DEFAULT_SETTINGS, MedModal, StopModal, MedsRenderer, Renderer: MedsRenderer, parse, isCurrent, buildList, title };
+module.exports._internals = { VIEW_TYPE, DEFAULT_SETTINGS, MedModal, StopModal, MedsRenderer, Renderer: MedsRenderer, parse, isCurrent, buildList, title, isOtc };

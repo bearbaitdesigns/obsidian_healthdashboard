@@ -1,6 +1,6 @@
 const path = require('path'); const fs = require('fs');
 const { registry, makeApp } = require('./mock'); const { seed } = require('./run-seed'); const { seedNew, daysAgo } = require('./seed-new');
-const PluginClass = require(path.resolve('dist/main.js'));
+const PluginClass = require(path.resolve('health-dashboard/main.js'));
 const src = fs.readFileSync('test/shot.js', 'utf8');
 eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
 (async () => {
@@ -16,7 +16,7 @@ eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
   const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
   v.contentEl.querySelectorAll('.hd-tab').find((b) => b.textContent === 'Migraine').click();
   const ex = v.contentEl.querySelector('.hd-extras');
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
   const extra = '.clickable-icon{background:transparent;box-shadow:none;padding:4px} body{padding:20px;max-width:1000px}';
   fs.writeFileSync('test/out-extras-light.html', `<!doctype html><meta charset=utf-8><style>${vars}${css}${extra}</style><body class="theme-light"><div class="hd-root">${html(ex)}</div></body>`);

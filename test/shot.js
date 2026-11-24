@@ -1,14 +1,14 @@
 require('./clock');
 const path = require('path'); const fs = require('fs');
 const mock = require('./mock'); const { registry, makeApp } = mock;
-const PluginClass = require(path.resolve('dist/main.js'));
+const PluginClass = require(path.resolve('health-dashboard/main.js'));
 const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function html(e) {
   if (e.tagName === '#TEXT') return esc(e._text);
   const tag = e.tagName.toLowerCase();
   const attrs = Object.assign({}, e.attrs);
   if (e.cls.size) attrs.class = [...e.cls].join(' ') + (attrs.class ? ' ' + attrs.class : '');
-  const st = Object.entries(e.style).map(([k,v]) => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()) + ':' + v).join(';'); if (st) attrs.style = st;
+  const st = Object.entries(e.style).filter(([, v]) => typeof v !== 'function').map(([k,v]) => k.replace(/[A-Z]/g, m => '-' + m.toLowerCase()) + ':' + v).join(';'); if (st || attrs.style) attrs.style = [attrs.style, st].filter(Boolean).join(';');
   const icon = attrs['data-icon'] ? '<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>' : '';
   return '<' + tag + Object.entries(attrs).map(([k,v]) => ' ' + k + '="' + esc(v).replace(/"/g,'&quot;') + '"').join('') + '>' + icon + esc(e._text) + e.children.map(html).join('') + '</' + tag + '>';
 }
@@ -19,7 +19,7 @@ function html(e) {
   await new Promise(r => setTimeout(r, 400));
   await registry.commands['health-dashboard:open-dashboard'].callback();
   const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const out = {};
   for (const [i, name] of [[0,'overview'],[1,'period'],[2,'migraine']]) {
     v.contentEl.querySelectorAll('.hd-tab')[i].click();

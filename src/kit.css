@@ -223,3 +223,12 @@
 .pt-pain-stat .pt-stat-label { font-size: var(--font-ui-smaller); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .pt-pain-stat .pt-stat-value { font-size: 1.25em; font-weight: 700; margin: 3px 0 1px; font-variant-numeric: tabular-nums; }
 .pt-pain-stat .pt-stat-sub { font-size: var(--font-ui-smaller); color: var(--text-muted); }
+
+/* Medications vs supplements and over the counter */
+.med-group { margin-top: 18px; padding-top: 4px; }
+.med-group + .med-group { border-top: 1px solid var(--background-modifier-border); margin-top: 22px; padding-top: 10px; }
+.med-group-heading { display: flex; align-items: center; gap: 8px; font-size: var(--font-ui-large); font-weight: 600; color: var(--text-normal); }
+.med-group-icon { display: inline-flex; color: var(--interactive-accent); }
+.med-group-icon svg { width: 18px; height: 18px; }
+.med-group-count { font-size: var(--font-ui-smaller); font-weight: 600; color: var(--text-muted); background: var(--background-modifier-hover); border-radius: 999px; padding: 1px 8px; }
+.med-group .hk-section-heading { margin-top: 10px; }

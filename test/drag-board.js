@@ -1,6 +1,6 @@
 const fs = require('fs'); const path = require('path'); const assert = require('assert');
 const { chromium } = require('playwright');
-const src = fs.readFileSync('dist/main.js', 'utf8');
+const src = fs.readFileSync('health-dashboard/main.js', 'utf8');
 const helper = src.slice(src.indexOf('/* sortable:start */'), src.indexOf('/* sortable:end */'));
 let html = fs.readFileSync('test/out-board-light.html', 'utf8');
 html = html.replace('</body>', `<script>${helper}; window.sorted=[]; makeSortable(document.querySelector('.hd-board'), { itemClass: 'hd-sortable', onSort: (k) => window.sorted.push(k.join(',')) });</script></body>`);

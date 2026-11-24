@@ -321,12 +321,12 @@ Open it from the **Medications** tab or **Medications: Open dashboard**.
 - **Tiles:** current medications, refills due, and medications started or stopped in the last 90 days.
 - **Refills due:** a **Refilled…** button sets the next date.
 - **Daily schedule:** columns for morning, midday, evening and bedtime.
-- **Medication cards:** scheduled and as-needed medicines, with search.
+- **Medication cards:** in two groups, **Medications** (prescriptions) and **Supplements and over the counter** (anything with the type *Supplement* or *Over the counter*), each split into scheduled and as-needed, with search.
 - **Past medications:** when you took each one, for how long, and why you stopped. You can restart any of them with one click.
 
 **Stop** a medication with the stop button. It asks for the last day and the reason, and the medication moves to your history; nothing is deleted.
 
-**Print medication list** creates a PDF to bring to appointments. It includes your allergies (set in **Settings → Medications**), regular and as-needed medicines with how to take them, medicines stopped in the last 12 months and why, and side effects. The status bar reminds you when a refill is due.
+**Print medication list** creates a PDF to bring to appointments. It includes your allergies (set in **Settings → Medications**), regular and as-needed medicines with how to take them (supplements and over-the-counter medicines in their own tables), medicines stopped in the last 12 months and why, and side effects. The status bar reminds you when a refill is due.
 
 Each medication is a note in `Medications/` with `entry: medication`.
 

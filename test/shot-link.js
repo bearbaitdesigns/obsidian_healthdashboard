@@ -1,7 +1,7 @@
 // Renders links as they'd appear in a note (Reading view) for a visual check
 const path = require('path'); const fs = require('fs');
 const { makeApp, registry, El } = require('./mock');
-const PluginClass = require(path.resolve('dist/main.js'));
+const PluginClass = require(path.resolve('health-dashboard/main.js'));
 const src = fs.readFileSync('test/shot.js', 'utf8');
 eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
 const K = PluginClass._link;
@@ -22,7 +22,7 @@ const K = PluginClass._link;
   p.appendText(' and my ');
   const h2 = p.createSpan(); host.mountLink(h2, K.parseLinkInline('health-link: label=cycle; tab=period; size=small'), true);
   p.appendText(' for anything unusual.');
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
   for (const th of ['light', 'dark']) fs.writeFileSync('test/out-link-' + th + '.html', `<!doctype html><meta charset=utf-8><style>${vars}${css} body{padding:24px;max-width:700px;font-size:16px;font-family:system-ui}</style><body class="theme-${th}">${html(note)}</body>`);
   process.exit(0);

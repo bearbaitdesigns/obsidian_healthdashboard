@@ -739,8 +739,8 @@ class HubRenderer {
     if (!md) { card.createEl('p', { cls: 'hd-muted', text: host_conflictText('Medications', 'medication-list') }); return; }
     const cur = md.current();
     if (!md.getRecords().length) { stat('Taking now', '–', 'Add your medications'); return; }
-    const prn = cur.filter((m) => m.schedule === 'As needed').length;
-    stat('Taking now', String(cur.length), (cur.length - prn) + ' scheduled · ' + prn + ' as needed');
+    const otc = cur.filter(D.isOtc).length;
+    stat('Taking now', String(cur.length), (cur.length - otc) + ' medications · ' + otc + ' supplements and OTC');
     const due = md.refillsDue();
     const tk = V.todayKey();
     stat('Refills due', String(due.length), due.length ? D.title(due[0]) + ' ' + V.relDays(due[0].refill, tk) : 'Nothing due soon', due.some((m) => m.refill < tk) ? 'is-warn' : '');

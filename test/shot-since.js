@@ -3,7 +3,7 @@ process.env.FAKE_NOW = process.env.FAKE_NOW || '2026-11-12T15:00:00';
 require('./clock');
 const fs = require('fs'); const path = require('path'); const YAML = require('yaml');
 const { makeApp, registry } = require('./mock');
-const Plugin = require(path.resolve('dist/main.js'));
+const Plugin = require(path.resolve('health-dashboard/main.js'));
 const src = fs.readFileSync('test/shot.js', 'utf8');
 eval(src.slice(src.indexOf('const esc'), src.indexOf('(async')));
 const DIR = process.argv[2], OUT = process.argv[3];
@@ -21,7 +21,7 @@ const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).flatMap((e) => (e
   const v = app.workspace.getLeavesOfType('health-dashboard')[0].view;
   v.renderer.setTab('visits'); await new Promise((r) => setTimeout(r, 100));
   if (process.env.HVIEW) { host.visits.settings.historyView = process.env.HVIEW; v.renderer.render(true); await new Promise((r) => setTimeout(r, 100)); }
-  const css = fs.readFileSync('dist/styles.css', 'utf8');
+  const css = fs.readFileSync('health-dashboard/styles.css', 'utf8');
   const vars = fs.readFileSync('test/out-overview-light.html', 'utf8').match(/<style>([\s\S]*?)\/\* Period Tracker/)[1];
   for (const th of ['light', 'dark']) fs.writeFileSync(OUT + '-' + th + '.html', `<!doctype html><meta charset=utf-8><style>${vars}${css}</style><body class="theme-${th}">${html(v.contentEl)}</body>`);
   process.exit(0);
