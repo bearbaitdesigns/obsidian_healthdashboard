@@ -101,14 +101,19 @@ EpisodeModal.prototype.collectDays = function (start, end) {
     .map(([date, v]) => ({ date, pain: v.pain == null ? 0 : v.pain, symptoms: v.symptoms || [], headLocation: v.headLocation || [], relief: v.relief || [], notes: v.notes || '' }));
 };
 
-/** Log one day of a migraine, like Log day for periods: pain, where it hurt, symptoms, medications and relief that day */
+/**
+ * One window for logging a migraine, in two parts:
+ *  1. About this migraine (only when it starts): date and time of day it started, type, place, possible causes, notes
+ *  2. The day: pain, where it hurts, symptoms, relief and medications (the same questions every day)
+ * Ticking "last day" ends the migraine on that day's date and asks the time of day it ended. Saving shows a summary of the episode.
+ * mode: 'start' | 'day' | 'end' (a day that no migraine covers starts one)
+ */
 class MigraineDayModal extends EpisodeModal {
   constructor(plugin, date, opts = {}) {
     super(plugin, null, {});
     this.day = startOfDay(date || new Date());
     this.opts = opts;
   }
-  /** The episode this day belongs to: one that covers it, or an ongoing one that started before it */
   findEpisode(key) {
     const eps = this.plugin.getEpisodes();
     return eps.find((e) => dayKey(e.start) <= key && (!e.end || dayKey(e.end) >= key)) || null;
@@ -119,138 +124,225 @@ class MigraineDayModal extends EpisodeModal {
     modalEl.addClass('mt-modal', 'mt-day-modal');
     contentEl.empty();
     const key = dayKey(this.day);
-    const ep = this.findEpisode(key);
+    const ep = this.opts.mode === 'start' ? null : this.findEpisode(key);
     this.target = ep;
-    this.titleEl.setText(this.opts.title || 'Log migraine day');
-    // values for this day: logged ones, else carried over from the day before, else the episode's
-    const v = ep ? epDay(ep, key) : { pain: Math.ceil(PAIN_MAX * 0.6), symptoms: [], headLocation: [], relief: [], notes: '', logged: false };
-    const when = this.section('Day', 'calendar-days');
-    const grid = when.createDiv({ cls: 'mt-grid-2' });
-    const df = this.field(grid, 'Date');
-    this.dateInput = df.createEl('input', { type: 'date', cls: 'mt-input' });
-    this.dateInput.value = key;
-    this.startInput = this.dateInput; // medication rows default to this date
-    this.info = when.createDiv({ cls: 'mt-duration' });
-    const setInfo = () => {
-      const k = this.dateInput.value, e = k ? this.findEpisode(k) : null;
-      if (e) this.info.setText('Day ' + spanDays(e.start, parseDT(k)) + ' of the migraine that started ' + fmtDate(e.start) + (e.end ? ' (ended ' + fmtDate(e.end) + ')' : ' (still going)') + '.');
-      else this.info.setText('No migraine covers this day yet: saving starts a new one on this day.');
-    };
-    this.dateInput.addEventListener('change', setInfo);
-    setInfo();
-    this.endedBox = when.createEl('label', { cls: 'mt-check' });
-    this.endedCb = this.endedBox.createEl('input', { type: 'checkbox' });
-    this.endedCb.checked = !!(ep && ep.end && dayKey(ep.end) === key) || (!ep && key < dayKey(new Date()));
-    this.endedBox.appendText(' The migraine ended this day');
+    this.mode = ep ? (this.opts.mode === 'end' ? 'end' : 'day') : 'start';
+    this.titleEl.setText(this.mode === 'start' ? 'Migraine started' : this.mode === 'end' ? 'End migraine' : 'Log migraine day');
+    const v = ep ? epDay(ep, key) : { pain: null, symptoms: [], headLocation: [], relief: [], notes: '', logged: false };
+    const isToday = key === dayKey(new Date());
 
-    const pain = this.section('Pain', 'activity');
+    /* Section 1: about this migraine (start only) */
+    if (this.mode === 'start') {
+      const about = this.section('1 · About this migraine', 'brain');
+      const g = about.createDiv({ cls: 'mt-grid-2' });
+      this.dateInput = this.field(g, 'Date started').createEl('input', { type: 'date', cls: 'mt-input' });
+      this.dateInput.value = key;
+      this.label(about, 'Time of day it started');
+      this.todChips = new ChipSelect(about, { options: TIME_OF_DAY.map((t) => t.value), hints: Object.fromEntries(TIME_OF_DAY.map((t) => [t.value, t.hint])), selected: isToday ? [deriveTimeOfDay(new Date())] : [], single: true, allowCustom: false });
+      this.label(about, 'Migraine type');
+      this.typeChips = new ChipSelect(about, { options: s.types, selected: [], single: true });
+      this.label(about, 'Where were you when it started?');
+      this.whereChips = new ChipSelect(about, { options: s.attackLocations, selected: [], single: true });
+      this.label(about, 'Possible causes');
+      this.trigChips = new ChipSelect(about, { options: s.triggers, selected: [] });
+      this.label(about, 'Notes');
+      this.notesInput = about.createEl('textarea', { cls: 'mt-textarea', attr: { rows: 2, placeholder: 'Anything else about this migraine…' } });
+    }
+
+    /* Section 2: the day (same questions every day) */
+    const dayTitle = this.mode === 'start' ? '2 · How it is today' : (ep ? 'Day ' + spanDays(ep.start, this.day) + ' · ' + fmtDate(this.day) : fmtDate(this.day));
+    const daySec = this.section(dayTitle, 'calendar-days');
+    if (this.mode !== 'start') {
+      const g = daySec.createDiv({ cls: 'mt-grid-2' });
+      this.dateInput = this.field(g, 'Date').createEl('input', { type: 'date', cls: 'mt-input' });
+      this.dateInput.value = key;
+      this.info = daySec.createDiv({ cls: 'mt-duration' });
+      const setInfo = () => {
+        const k = this.dateInput.value, e = k ? this.findEpisode(k) : null;
+        this.info.setText(e ? 'Day ' + spanDays(e.start, parseDT(k)) + ' of the migraine that started ' + fmtDate(e.start) + (e.end ? ' (ended ' + fmtDate(e.end) + ')' : ' (still going)') + '.' : 'No migraine covers this day: saving starts a new one.');
+      };
+      this.dateInput.addEventListener('change', setInfo);
+      setInfo();
+    }
+    this.startInput = this.dateInput; // medication rows use this date
     const fresh = !v.logged && !(ep && ep.days && ep.days.length) && !v.pain;
-    this.maxPain = this.painSelector(pain, 'Pain today', v.pain == null || fresh ? Math.ceil(PAIN_MAX * 0.6) : v.pain);
-    if (ep && !v.logged && v.from) pain.createDiv({ cls: 'mt-help', text: 'Filled in from ' + fmtDate(parseDT(v.from)) + '. Change anything that is different today.' });
-    this.label(pain, 'Where does it hurt?');
-    this.headChips = new ChipSelect(pain, { options: s.headLocations, selected: (v.headLocation || []).slice() });
-    const sym = this.section('Symptoms', 'thermometer');
-    this.symChips = new ChipSelect(sym, { options: s.symptoms, selected: (v.symptoms || []).slice() });
-    const meds = this.section('Medications taken today', 'pill');
+    this.maxPain = this.painSelector(daySec, 'Pain today', v.pain == null || fresh ? Math.ceil(PAIN_MAX * 0.6) : v.pain);
+    if (ep && !v.logged && v.from) daySec.createDiv({ cls: 'mt-help', text: 'Filled in from ' + fmtDate(parseDT(v.from)) + '. Change anything that is different today.' });
+    this.label(daySec, 'Where does it hurt?');
+    this.headChips = new ChipSelect(daySec, { options: s.headLocations, selected: (v.headLocation || []).slice() });
+    this.label(daySec, 'Symptoms');
+    this.symChips = new ChipSelect(daySec, { options: s.symptoms, selected: (v.symptoms || []).slice() });
+    this.label(daySec, 'Relief tried today');
+    this.reliefChips = new ChipSelect(daySec, { options: s.reliefs, selected: (v.logged ? v.relief : []).slice() });
+    this.label(daySec, 'Medications taken today');
     this.medListId = 'mt-meds-' + Date.now();
-    const dl = meds.createEl('datalist', { attr: { id: this.medListId } });
+    const dl = daySec.createEl('datalist', { attr: { id: this.medListId } });
     for (const m of s.medications) dl.createEl('option', { attr: { value: m } });
-    this.medRows = meds.createDiv({ cls: 'mt-med-rows' });
+    this.medRows = daySec.createDiv({ cls: 'mt-med-rows' });
     this.medRowEls = [];
     for (const m of ep ? ep.medications.filter((m) => medDayKey(m, ep) === key) : []) this.addMedRow(m);
-    const addMed = meds.createEl('button', { cls: 'mt-add-med', attr: { type: 'button' } });
+    const addMed = daySec.createEl('button', { cls: 'mt-add-med', attr: { type: 'button' } });
     setIcon(addMed.createSpan(), 'plus');
     addMed.createSpan({ text: 'Add medication' });
     addMed.onclick = () => this.addMedRow({ name: '', dose: '', date: this.dateInput.value, time: '', effect: 'Not sure' }, true);
-    const rel = this.section('Relief tried today', 'heart-handshake');
-    this.reliefChips = new ChipSelect(rel, { options: s.reliefs, selected: (v.logged ? v.relief : []).slice() });
-    const notes = this.section('Notes', 'pencil');
-    this.notesInput = notes.createEl('textarea', { cls: 'mt-textarea', attr: { rows: 2, placeholder: 'Anything about today…' } });
-    this.notesInput.value = v.logged ? v.notes || '' : '';
+    if (this.mode !== 'start') {
+      this.label(daySec, 'Notes about today');
+      this.dayNotesInput = daySec.createEl('textarea', { cls: 'mt-textarea', attr: { rows: 2, placeholder: 'Anything about today…' } });
+      this.dayNotesInput.value = v.logged ? v.notes || '' : '';
+    }
+
+    /* Last day: end date and the time of day it ended */
+    const last = contentEl.createDiv({ cls: 'mt-section mt-last' });
+    this.endedBox = last.createEl('label', { cls: 'mt-check' });
+    this.endedCb = this.endedBox.createEl('input', { type: 'checkbox' });
+    this.endedCb.checked = this.mode === 'end' || !!(ep && ep.end && dayKey(ep.end) === key);
+    this.endedBox.appendText(' This is the last day of the migraine');
+    this.endBox = last.createDiv({ cls: 'mt-end-fields' });
+    this.label(this.endBox, 'Time of day it ended');
+    this.todEndChips = new ChipSelect(this.endBox, { options: TIME_OF_DAY_END.map((t) => t.value), hints: Object.fromEntries(TIME_OF_DAY_END.map((t) => [t.value, t.hint])), selected: ep && ep.timeOfDayEnd ? [ep.timeOfDayEnd] : isToday ? [deriveTimeOfDay(new Date())] : [], single: true, allowCustom: false });
+    const showEnd = () => this.endBox.toggleClass('is-hidden', !this.endedCb.checked);
+    this.endedCb.addEventListener('change', showEnd);
+    showEnd();
 
     const footer = contentEl.createDiv({ cls: 'mt-footer' });
     if (ep) footer.createEl('button', { text: 'Edit whole episode', attr: { type: 'button' } }).onclick = () => { this.close(); new EpisodeModal(this.plugin, ep).open(); };
     footer.createDiv({ cls: 'mt-spacer' });
     footer.createEl('button', { text: 'Cancel', attr: { type: 'button' } }).onclick = () => this.close();
-    footer.createEl('button', { text: 'Save day', cls: 'mod-cta', attr: { type: 'button' } }).onclick = () => this.save();
+    footer.createEl('button', { text: this.mode === 'start' ? 'Save migraine' : this.mode === 'end' ? 'End migraine' : 'Save day', cls: 'mod-cta', attr: { type: 'button' } }).onclick = () => this.save();
   }
   updateDuration() {}
   async save() {
     const key = K_dayVal(this.dateInput.value);
     if (!key) { new Notice('Choose the date.'); return; }
+    const ended = this.endedCb.checked;
+    const endKey = ended ? key : null; // the migraine ends on this day's date
     const s = this.plugin.settings;
-    const day = {
-      date: key, pain: this.maxPain.get(), symptoms: this.symChips.values(), headLocation: this.headChips.values(),
-      relief: this.reliefChips.values(), notes: this.notesInput.value.trim(),
-    };
+    const day = { date: key, pain: this.maxPain.get(), symptoms: this.symChips.values(), headLocation: this.headChips.values(), relief: this.reliefChips.values(), notes: this.dayNotesInput ? this.dayNotesInput.value.trim() : '' };
     const meds = this.medRowEls.map((r) => ({ name: r.name.value.trim(), dose: r.dose.value.trim(), date: key, time: r.time.value, effect: r.effect.value })).filter((m) => m.name);
     const remember = (k, values) => { for (const x of values) if (x && !s[k].includes(x)) s[k].push(x); };
     remember('symptoms', day.symptoms); remember('headLocations', day.headLocation); remember('reliefs', day.relief); remember('medications', meds.map((m) => m.name));
+    const about = this.mode === 'start' ? { timeOfDay: this.todChips.value(), type: this.typeChips.value(), attackLocation: this.whereChips.value(), triggers: this.trigChips.values(), notes: this.notesInput.value.trim() } : null;
+    if (about) { remember('types', [about.type]); remember('attackLocations', [about.attackLocation]); remember('triggers', about.triggers); }
     await this.plugin.saveSettings();
     try {
-      await this.plugin.saveMigraineDay(day, meds, this.endedCb.checked);
-      new Notice('Saved ' + fmtDate(parseDT(key)) + ': pain ' + day.pain + '/' + PAIN_MAX + '.');
+      const ep = await this.plugin.saveMigraineDay(day, meds, ended ? { date: endKey, timeOfDayEnd: this.todEndChips.value() } : null, about);
       this.close();
+      new MigraineSummaryModal(this.plugin, ep, this.mode === 'start' ? 'started' : ended ? 'ended' : 'day').open();
     } catch (err) {
       console.error('[Migraine Tracker]', err);
-      new Notice('Couldn’t save the day: ' + err.message);
+      new Notice('Couldn’t save: ' + err.message);
     }
   }
 }
 const K_dayVal = (v) => (parseDT(v) ? dayKey(parseDT(v)) : null);
+
+/** A summary of one episode after saving, with a way back to the dashboard */
+class MigraineSummaryModal extends Modal {
+  constructor(plugin, ep, what) { super(plugin.app); this.plugin = plugin; this.ep = ep; this.what = what; }
+  onOpen() {
+    const ep = this.ep, { contentEl } = this;
+    this.modalEl.addClass('mt-modal', 'mt-summary-modal');
+    const now = new Date();
+    const n = Math.max(1, Math.min(31, spanDays(ep.start, ep.end || now)));
+    this.titleEl.setText(this.what === 'ended' ? 'Migraine ended' : this.what === 'started' ? 'Migraine saved' : 'Day saved');
+    const head = contentEl.createDiv({ cls: 'mt-sum-head' });
+    head.createDiv({ cls: 'mt-sum-dates', text: fmtDate(ep.start) + (ep.end ? ' – ' + fmtDate(ep.end) : ' · still going') });
+    head.createDiv({ cls: 'mt-muted', text: [ep.end ? fmtDays(n) : 'Day ' + n, ep.type, ep.timeOfDay ? 'started: ' + ep.timeOfDay.toLowerCase() : '', ep.end && ep.timeOfDayEnd ? 'ended: ' + ep.timeOfDayEnd.toLowerCase() : '', ep.attackLocation ? 'at ' + ep.attackLocation.toLowerCase() : ''].filter(Boolean).join(' · ') });
+    const tiles = contentEl.createDiv({ cls: 'mt-sum-tiles' });
+    const tile = (l, val, sub, color) => { const t = tiles.createDiv({ cls: 'mt-sum-tile' }); t.createDiv({ cls: 'mt-sum-label', text: l }); const v = t.createDiv({ cls: 'mt-sum-value', text: val }); if (color) v.style.color = color; if (sub) t.createDiv({ cls: 'mt-muted', text: sub }); };
+    tile('Peak pain', (ep.painMax ?? '–') + '/' + PAIN_MAX, painLabel(ep.painMax || 0), ep.painMax ? painColor(ep.painMax, 1) : '');
+    tile('Average pain', (ep.painAvg ?? '–') + '/' + PAIN_MAX, ep.avgAuto ? 'from each day' : 'as entered');
+    const medDays = new Set(ep.medications.map((m) => medDayKey(m, ep))).size;
+    tile('Medication', String(ep.medications.length), ep.medications.length ? 'on ' + medDays + (medDays === 1 ? ' day' : ' days') : 'none taken');
+    tile('Days', String(n), ep.end ? 'ended ' + fmtDate(ep.end) : 'still going');
+    // day by day
+    const t = contentEl.createEl('table', { cls: 'mt-sum-table' });
+    const hr = t.createEl('thead').createEl('tr');
+    for (const h of ['Day', 'Pain', 'Where', 'Symptoms', 'Medication', 'Relief']) hr.createEl('th', { text: h });
+    const tb = t.createEl('tbody');
+    for (let i = 0; i < n; i++) {
+      const k = dayKey(addDays(startOfDay(ep.start), i));
+      const d = (ep.days && ep.days.length) ? epDay(ep, k) : { pain: ep.painMax, symptoms: ep.symptoms, headLocation: ep.headLocation, relief: i === 0 ? ep.relief : [], logged: i === 0 };
+      const tr = tb.createEl('tr', { cls: d.logged ? '' : 'is-carried' });
+      tr.createEl('td', { text: 'Day ' + (i + 1) + ' · ' + fmtDate(parseDT(k)).replace(/, \d{4}$/, '') });
+      const pill = tr.createEl('td').createSpan({ cls: 'mt-pain-pill', text: (d.pain ?? '–') + '/' + PAIN_MAX });
+      if (d.pain) pill.style.background = painColor(d.pain, 0.75);
+      tr.createEl('td', { text: (d.headLocation || []).join(', ') || '–' });
+      tr.createEl('td', { text: ((d.symptoms || []).join(', ') || '–') + (d.logged ? '' : ' (same as day before)') });
+      tr.createEl('td', { text: ep.medications.filter((m) => medDayKey(m, ep) === k).map((m) => m.name + (m.dose ? ' ' + m.dose : '') + (m.effect && m.effect !== 'Not sure' ? ' (' + m.effect.toLowerCase() + ')' : '')).join(', ') || '–' });
+      tr.createEl('td', { text: (d.relief || []).join(', ') || '–' });
+    }
+    const facts = contentEl.createDiv({ cls: 'mt-sum-facts' });
+    if (ep.triggers.length) facts.createDiv({ text: 'Possible causes: ' + ep.triggers.join(', ') });
+    if (ep.notes) facts.createDiv({ text: 'Notes: ' + ep.notes });
+    const foot = contentEl.createDiv({ cls: 'mt-footer' });
+    foot.createEl('button', { text: 'Edit episode', attr: { type: 'button' } }).onclick = () => {
+      this.close();
+      const fresh = this.plugin.getEpisodes().find((e) => e.path === ep.path) || ep;
+      new EpisodeModal(this.plugin, fresh).open();
+    };
+    foot.createDiv({ cls: 'mt-spacer' });
+    foot.createEl('button', { text: 'Back to dashboard', cls: 'mod-cta', attr: { type: 'button' } }).onclick = () => {
+      this.close();
+      const c = this.app.commands;
+      if (c && c.executeCommandById && c.commands && c.commands['health-dashboard:open-migraine']) c.executeCommandById('health-dashboard:open-migraine');
+      else if (this.plugin.activateView) this.plugin.activateView();
+    };
+  }
+  onClose() { this.contentEl.empty(); }
+}
 /*@@PLUGIN@@*/
-/** Save one day into the episode that covers it, or start a new episode on that day */
-MigraineTrackerPlugin.prototype.saveMigraineDay = async function (day, meds, ended) {
+/** Save one day into the episode that covers it, or start a new episode on that day. Returns the episode as saved. */
+MigraineTrackerPlugin.prototype.saveMigraineDay = async function (day, meds, endInfo, about) {
   const date = parseDT(day.date);
   const eps = this.getEpisodes();
-  let ep = eps.find((e) => dayKey(e.start) <= day.date && (!e.end || dayKey(e.end) >= day.date));
-  // the day after an episode that ended yesterday carries it on
-  if (!ep) ep = eps.find((e) => e.end && dayKey(addDays(e.end, 1)) === day.date) || null;
+  let ep = about ? null : eps.find((e) => dayKey(e.start) <= day.date && (!e.end || dayKey(e.end) >= day.date));
+  if (!ep && !about) ep = eps.find((e) => e.end && dayKey(addDays(e.end, 1)) === day.date) || null; // the day after it ended carries it on
+  const endDate = endInfo ? parseDT(endInfo.date) : null;
   if (!ep) {
+    const a = about || {};
     const fresh = {
-      start: date, end: ended ? date : null, type: '', attackLocation: '', timeOfDay: '', timeOfDayEnd: '',
-      painMax: day.pain, painAvg: day.pain, symptoms: day.symptoms.slice(), triggers: [], relief: day.relief.slice(), medications: meds,
-      headLocation: day.headLocation.slice(), notes: '', days: [day], avgAuto: true,
+      start: date, end: endDate, type: a.type || '', attackLocation: a.attackLocation || '', timeOfDay: a.timeOfDay || '', timeOfDayEnd: endInfo ? endInfo.timeOfDayEnd || '' : '',
+      painMax: day.pain, painAvg: day.pain, symptoms: day.symptoms.slice(), triggers: a.triggers || [], relief: day.relief.slice(), medications: meds,
+      headLocation: day.headLocation.slice(), notes: a.notes || '', days: [day], avgAuto: true,
     };
-    if (dayKey(date) === dayKey(new Date())) fresh.timeOfDay = deriveTimeOfDay(new Date());
-    await this.createEpisode(fresh);
-    return;
+    fresh.painAvg = autoPainAvg(fresh);
+    const file = await this.createEpisode(fresh);
+    return Object.assign(fresh, { file, path: file ? file.path : '' });
   }
   const days = (ep.days || []).filter((d) => d.date !== day.date);
-  // keep day 1 as it was when the first other day is added
   const k0 = dayKey(ep.start);
   if (!days.length && day.date !== k0) days.push({ date: k0, pain: ep.painMax || 0, symptoms: ep.symptoms.slice(), headLocation: (ep.headLocation || []).slice(), relief: [], notes: '' });
   days.push(day);
   days.sort((a, b) => a.date.localeCompare(b.date));
   const start = day.date < k0 ? date : ep.start;
-  let end = ep.end;
-  if (ended) end = date;
+  let end = ep.end, timeOfDayEnd = ep.timeOfDayEnd;
+  if (endInfo) { end = endDate; timeOfDayEnd = endInfo.timeOfDayEnd || timeOfDayEnd; }
   else if (end && dayKey(end) < day.date) end = date; // a later day extends a finished migraine
   const next = Object.assign({}, ep, {
-    start, end, days,
+    start, end, timeOfDayEnd: end ? timeOfDayEnd : '', days,
     medications: ep.medications.filter((m) => medDayKey(m, ep) !== day.date).concat(meds),
     painMax: Math.max(...days.map((d) => d.pain || 0)),
     symptoms: uniq(ep.symptoms.concat(...days.map((d) => d.symptoms))),
     headLocation: uniq((ep.headLocation || []).concat(...days.map((d) => d.headLocation || []))),
     relief: uniq(ep.relief.concat(...days.map((d) => d.relief || []))),
   });
-  if (end && !ep.end && dayKey(end) === dayKey(new Date())) next.timeOfDayEnd = next.timeOfDayEnd || deriveTimeOfDay(new Date());
   next.painAvg = ep.avgAuto ? autoPainAvg(next) : ep.painAvg;
   await this.updateEpisode(ep.file, next);
+  return next;
 };
-/** Migraine started: one tap starts an episode today, then the day window opens to add pain and symptoms */
-MigraineTrackerPlugin.prototype.migraineStarted = async function () {
-  const now = new Date();
+/** Migraine started: opens the start window (or today's day if one is already going) */
+MigraineTrackerPlugin.prototype.migraineStarted = function (date) {
   const going = this.getEpisodes().filter((e) => !e.end).sort((a, b) => b.start - a.start)[0];
-  if (going) {
-    new Notice('A migraine is already in progress since ' + fmtDate(going.start) + '. Log today’s pain and symptoms.');
-    new MigraineDayModal(this, now).open();
+  if (going && !date) {
+    new Notice('A migraine is already in progress since ' + fmtDate(going.start) + '. Log how today is going.');
+    new MigraineDayModal(this, new Date()).open();
     return;
   }
-  await this.createEpisode({
-    start: startOfDay(now), end: null, type: '', attackLocation: '', timeOfDay: deriveTimeOfDay(now), timeOfDayEnd: '',
-    painMax: 0, painAvg: 0, symptoms: [], triggers: [], relief: [], medications: [], headLocation: [], notes: '', days: [], avgAuto: true,
-  });
-  new Notice('Migraine start logged for today. Add how it feels now.');
-  window.setTimeout(() => new MigraineDayModal(this, now, { title: 'Migraine started · ' + fmtDate(now) }).open(), 300);
+  new MigraineDayModal(this, date || new Date(), { mode: 'start' }).open();
+};
+/** End now: today's questions with the end date and time */
+MigraineTrackerPlugin.prototype.endMigraineDay = function (ep) {
+  const today = startOfDay(new Date());
+  new MigraineDayModal(this, ep && ep.start > today ? ep.start : today, { mode: 'end' }).open();
 };

@@ -612,7 +612,7 @@ class HubRenderer {
       setIcon(b.createSpan({ cls: 'hd-btn-icon' }), 'alarm-clock');
       b.createSpan({ text: 'Migraine in progress since ' + M.fmtDate(ep.start) + ' (day ' + M.spanDays(ep.start, now) + ').' });
       b.createDiv({ cls: 'hd-spacer' });
-      b.createEl('button', { text: 'End now', cls: 'mod-cta' }).onclick = () => mig.endEpisode(ep);
+      b.createEl('button', { text: 'End now', cls: 'mod-cta' }).onclick = () => mig.endMigraineDay(ep);
       b.createEl('button', { text: 'Log today' }).onclick = () => new M.MigraineDayModal(mig, new Date()).open();
       b.createEl('button', { text: 'Edit' }).onclick = () => new M.EpisodeModal(mig, ep).open();
     }

@@ -348,7 +348,7 @@ migraine = patch(migraine, "    const ep = this.collect();\n    if (!ep) return;
 migraine = patch(migraine, "/* ------------------------------------------------------------------ */\n/* Dashboard view", MDAYS[1] + "\n/* ------------------------------------------------------------------ */\n/* Dashboard view", 'migraine days modal methods');
 migraine = patch(migraine, "        const peak = Math.max(...eps.map((e) => e.painMax || 0));", "        const peak = Math.max(...eps.map((e) => epDayPain(e, key)));", 'migraine calendar day pain');
 migraine = patch(migraine, "      dayPain.set(k, Math.max(dayPain.get(k) || 0, e.painMax || 1));", "      dayPain.set(k, Math.max(dayPain.get(k) || 0, epDayPain(e, k) || 1));", 'migraine report day pain');
-migraine = patch(migraine, "module.exports._internals = { episodeDayKeys,", "module.exports._internals = { epDay, epDayPain, parseEpDays, autoPainAvg, MigraineDayModal, episodeDayKeys,", 'migraine export days');
+migraine = patch(migraine, "module.exports._internals = { episodeDayKeys,", "module.exports._internals = { epDay, epDayPain, parseEpDays, autoPainAvg, MigraineDayModal, MigraineSummaryModal, episodeDayKeys,", 'migraine export days');
 
 // Migraine: average pain is worked out from the pain on each day instead of being asked
 migraine = patch(migraine, "    // Average can't exceed maximum: picking one nudges the other if needed\n    this.maxPain = this.painSelector(pain, 'Maximum pain', this.ep.painMax ?? Math.ceil(PAIN_MAX * 0.6), (v) => {\n      if (this.avgPain && this.avgPain.get() > v) this.avgPain.set(v);\n    });\n    this.avgPain = this.painSelector(pain, 'Average pain', this.ep.painAvg ?? Math.ceil(PAIN_MAX * 0.4), (v) => {\n      if (this.maxPain.get() < v) this.maxPain.set(v);\n    });",
@@ -372,6 +372,13 @@ migraine = patch(migraine, "    this.addCommand({ id: 'log-migraine', name: 'Log
 migraine = patch(migraine, "    'Smell sensitivity', 'Visual aura', 'Blurred vision', 'Dizziness / vertigo',", "    'Smell sensitivity', 'Visual aura', 'Silent aura', 'Blurred vision', 'Dizziness / vertigo',", 'migraine silent aura symptom');
 // The Migraine tab has Migraine started; days are logged from the calendar, the banner or the Overview
 migraine = patch(migraine, "    const logBtn = actions.createEl('button', { cls: 'mod-cta mt-btn' });\n    setIcon(logBtn.createSpan(), 'plus');\n    logBtn.createSpan({ text: 'Log day' });\n    logBtn.onclick = () => new MigraineDayModal(this.plugin, new Date()).open();\n", "", 'migraine no Log day button');
+
+// End now asks the day's questions plus the end date and time; episode list links to the summary
+migraine = patch(migraine, "      endBtn.onclick = () => this.plugin.endEpisode(ep);", "      endBtn.onclick = () => this.plugin.endMigraineDay(ep);", 'migraine end now window');
+migraine = patch(migraine, "      tr.createEl('td', { text: ep.end ? fmtDays(durationDays(ep)) : `Ongoing (day ${spanDays(ep.start, now)})` });",
+  "      { const dtd = tr.createEl('td', { text: ep.end ? fmtDays(durationDays(ep)) : `Ongoing (day ${spanDays(ep.start, now)})` }); if (ep.days && ep.days.length) dtd.createDiv({ cls: 'mt-muted-sm', text: ep.days.length + (ep.days.length === 1 ? ' day logged' : ' days logged') }); }", 'migraine list days logged');
+migraine = patch(migraine, "      edit.onclick = () => new EpisodeModal(this.plugin, ep).open();\n    }",
+  "      edit.onclick = () => new EpisodeModal(this.plugin, ep).open();\n      const sumBtn = act.createEl('button', { cls: 'mt-icon-btn', attr: { 'aria-label': 'Episode summary' } });\n      setIcon(sumBtn, 'list');\n      sumBtn.onclick = () => new MigraineSummaryModal(this.plugin, ep, ep.end ? 'ended' : 'day').open();\n    }", 'migraine list summary button');
 
 const wrap = (name, src) =>
   '/* ' + '='.repeat(66) + ' */\n/* ' + name.padEnd(66) + ' */\n/* ' + '='.repeat(66) + ' */\n' +

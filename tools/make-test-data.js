@@ -100,6 +100,12 @@ migList.forEach((d, i) => {
     relief: some(['Dark room', 'Sleep', 'Cold compress', 'Hydration', 'Caffeine', 'Massage'], 1, 2), medications: meds,
     head_location: some(['Left side', 'Right side', 'Behind left eye', 'Left temple', 'Forehead', 'Both sides'], 1, 2),
     notes: aura ? 'Zigzag lines in vision for about 20 minutes before the headache.' : '',
+    // the last month is logged day by day (the way new migraines are recorded)
+    ...(diff(d, END) <= 30 ? (() => {
+      const n = ongoing ? diff(d, END) + 1 : lenDays + 1;
+      const days = Array.from({ length: n }, (_, j) => ({ date: add(d, j), pain: Math.max(1, pain - j), symptoms: j === 0 ? sym.slice() : sym.slice(0, Math.max(1, sym.length - j)), head_location: j === 0 ? ['Left side'] : ['Left temple'], relief: j === 0 ? ['Dark room'] : ['Hydration'] }));
+      return { days, pain_avg: Math.round(days.reduce((a, x) => a + x.pain, 0) / n * 10) / 10, pain_avg_auto: true };
+    })() : {}),
   });
 });
 

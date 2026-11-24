@@ -180,10 +180,12 @@ The Symptoms card shows two pain averages: all bleeding days, and the first two 
 
 ## Migraine: pain and symptoms day by day
 
-**Log day and Migraine started**, like the period tracker:
-- **Migraine started** (Overview and Migraine tab) starts today's migraine in one click, then opens the day window to add how it feels.
-- **Log migraine day** (Overview, or click a day on the Migraine calendar) logs one day: pain, where it hurts, symptoms, medications taken that day, relief tried that day and notes. Pain, location and symptoms start filled in from the day before. Tick **The migraine ended this day** on the last day. A day with no migraine starts a new one; the day after a migraine that ended carries it on.
-- The in-progress banner has **Log today**. Commands: **Log migraine day** and **Migraine started today**.
+**Logging a migraine**, like the period tracker:
+- **Migraine started** (Overview and Migraine tab) opens one window in two parts. **1 · About this migraine**: date started, time of day it started, migraine type, where you were, possible causes and notes. **2 · How it is today**: pain, where it hurts, symptoms, relief tried today and medications taken today. Clicking a calendar day that no migraine covers opens the same window.
+- **Each later day** (**Log migraine day** on the Overview, **Log today** on the in-progress banner, or click a day on the Migraine calendar) asks the same day questions, plus notes about today. Pain, where it hurts and symptoms start filled in from the day before.
+- **The last day:** tick **This is the last day of the migraine**; the migraine ends on that day's date and you choose the time of day it ended. **End now** on the banner opens today's questions with this already ticked.
+- **After saving**, a summary shows the dates, length, type and times, peak and average pain, medications, a day-by-day table and the possible causes, with **Edit episode** and **Back to dashboard**. The summary button on each episode in the Migraine tab's list shows it again, and each episode shows how many days were logged.
+- The full **Edit** window still edits a whole episode. Commands: **Log migraine day** and **Migraine started today**.
 
 **Aura.** Symptoms include **Visual aura** and **Silent aura** (aura without a headache). Either one, on any day, counts the episode in the *With aura* tile, the PDF and the visit summary.
 

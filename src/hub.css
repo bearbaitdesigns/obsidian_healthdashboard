@@ -471,3 +471,20 @@ svg circle.is-tip { r: 5; stroke: var(--background-primary); stroke-width: 1.5; 
 .mt-day-modal .mt-med-date { display: none; }
 .mt-day-modal .mt-check { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .mt-day-extra { margin-top: 4px; font-size: var(--font-ui-smaller); color: var(--text-muted); }
+
+/* Migraine windows: start (two parts), day, end; and the episode summary */
+.mt-day-modal .mt-end-fields { margin-top: 10px; padding: 10px 12px; border-radius: 8px; background: var(--background-secondary); }
+.mt-day-modal .mt-end-fields.is-hidden { display: none; }
+.mt-day-modal .mt-last { padding-top: 6px; }
+.mt-summary-modal { width: min(760px, 96vw); }
+.mt-sum-head { margin-bottom: 12px; }
+.mt-sum-dates { font-size: 1.15em; font-weight: 700; }
+.mt-sum-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.mt-sum-tile { border: 1px solid var(--background-modifier-border); border-radius: 10px; padding: 10px 12px; }
+.mt-sum-label { font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
+.mt-sum-value { font-size: 1.4em; font-weight: 700; margin-top: 2px; }
+.mt-sum-table { width: 100%; border-collapse: collapse; font-size: var(--font-ui-small); }
+.mt-sum-table th { text-align: left; font-size: 0.75em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); padding: 4px 6px; border-bottom: 1px solid var(--background-modifier-border); }
+.mt-sum-table td { padding: 6px; border-bottom: 1px solid var(--background-modifier-border); vertical-align: top; }
+.mt-sum-table tr.is-carried td { color: var(--text-muted); }
+.mt-sum-facts { margin-top: 10px; font-size: var(--font-ui-small); display: flex; flex-direction: column; gap: 4px; }

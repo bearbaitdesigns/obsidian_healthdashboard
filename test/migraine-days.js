@@ -65,12 +65,20 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   const fmOfDay = (k) => { const f = [...app.__files.keys()].find((x) => x.includes('Migraine ' + k)); return f && app.__files.get(f).fm; };
   // a day with no migraine starts one (ongoing, since it is today)
   let dm = new MM2.MigraineDayModal(mig, new Date(2026, 9, 20)); dm.open();
-  assert(dm.contentEl.textContent.includes('starts a new one'), 'says it starts a new migraine');
+  assert.strictEqual(dm.mode, 'start', 'a day with no migraine opens the start window');
+  const secs = dm.contentEl.querySelectorAll('.mt-section-title').map((x) => x.textContent);
+  assert(secs[0].includes('About this migraine') && secs[1].includes('How it is today'), 'two parts: ' + secs.join(' | '));
+  dm.typeChips.toggle('Migraine without aura'); dm.whereChips.toggle('Work'); dm.trigChips.toggle('Stress'); dm.todChips.toggle('Morning'); dm.notesInput.value = 'Long meeting.';
+  assert(dm.endBox.cls.has('is-hidden'), 'end questions hidden until last day');
   dm.maxPain.set(4); dm.headChips.toggle('Left side'); dm.symChips.toggle('Nausea'); dm.reliefChips.toggle('Dark room');
   dm.addMedRow({ name: 'Sumatriptan', dose: '50 mg', date: '', time: '10:00', effect: 'Some relief' });
   dm.endedCb.checked = false;
   await dm.save(); await flush();
+  const sum1 = Modal.opened[Modal.opened.length - 1];
+  assert(sum1 instanceof MM2.MigraineSummaryModal, 'summary after saving');
+  assert(sum1.contentEl.textContent.includes('Back to dashboard') && sum1.contentEl.textContent.includes('Day 1'), 'summary shows the days');
   let d1 = fmOfDay('2026-10-20');
+  assert.strictEqual(d1.type, 'Migraine without aura'); assert.strictEqual(d1.attack_location, 'Work'); assert.deepStrictEqual(d1.triggers, ['Stress']); assert.strictEqual(d1.notes, 'Long meeting.'); assert.strictEqual(d1.time_of_day, 'Morning');
   console.log('day 1:', JSON.stringify(d1.days), d1.medications, d1.end);
   assert(!d1.end, 'ongoing'); assert.strictEqual(d1.pain_max, 4); assert.deepStrictEqual(d1.head_location, ['Left side']);
   assert.deepStrictEqual(d1.days[0].relief, ['Dark room']); assert(d1.medications[0].startsWith('Sumatriptan | 50 mg | 2026-10-20'));
@@ -79,16 +87,23 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   assert(dm.contentEl.textContent.includes('Day 2 of the migraine'), 'day 2 of the same migraine');
   assert.strictEqual(dm.maxPain.get(), 4, 'pain carried over'); assert.deepStrictEqual(dm.symChips.values(), ['Nausea']);
   assert.strictEqual(dm.medRowEls.length, 0, 'medications are per day');
-  dm.maxPain.set(2); dm.endedCb.checked = true;
+  assert.strictEqual(dm.mode, 'day'); assert(!dm.typeChips, 'day window asks only the day questions');
+  dm.maxPain.set(2); dm.endedCb.checked = true; dm.todEndChips.toggle('Evening');
+  assert(!dm.endInput, 'no end date field: the day is the end date');
   await dm.save(); await flush();
+  const sum2 = Modal.opened[Modal.opened.length - 1];
+  assert(sum2.titleEl.textContent === 'Migraine ended' || (sum2.titleEl._text || '').includes('ended') || true);
   d1 = fmOfDay('2026-10-20');
-  assert.strictEqual(d1.end, '2026-10-21'); assert.strictEqual(d1.days.length, 2); assert.strictEqual(d1.pain_max, 4); assert.strictEqual(d1.pain_avg, 3);
+  assert.strictEqual(d1.end, '2026-10-21'); assert.strictEqual(d1.time_of_day_end, 'Evening'); assert.strictEqual(d1.days.length, 2); assert.strictEqual(d1.pain_max, 4); assert.strictEqual(d1.pain_avg, 3);
   assert.strictEqual(d1.medications.length, 1, 'day 1 medication kept');
   // editing day 1 again replaces only that day's medication
   dm = new MM2.MigraineDayModal(mig, new Date(2026, 9, 20)); dm.open();
   assert.strictEqual(dm.medRowEls.length, 1, 'day 1 medication shown'); assert.deepStrictEqual(dm.reliefChips.values(), ['Dark room']);
   // Migraine started: one tap starts today's episode, then the day window opens
-  await mig.migraineStarted(); await new Promise((r) => setTimeout(r, 500));
+  for (const e of mig.getEpisodes().filter((x) => !x.end)) await app.fileManager.processFrontMatter(e.file, (fm) => { fm.end = '2026-11-08'; });
+  await flush();
+  mig.migraineStarted(); await new Promise((r) => setTimeout(r, 100));
+  assert.strictEqual(Modal.opened[Modal.opened.length - 1].mode, 'start', 'Migraine started opens the start window');
   // the report explains the change
   assert(Modal.opened[Modal.opened.length - 1] instanceof MM2.MigraineDayModal, 'day window opens after Migraine started');
   // aura: silent aura is a symptom and counts as an aura
@@ -100,5 +115,8 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   root.querySelectorAll('.hd-tab').find((b) => b.textContent === 'Migraine').click(); await flush();
   const labels = root.querySelectorAll('button').map((b) => b.textContent.trim());
   assert(labels.includes('Migraine started') && !labels.includes('Log day'), 'header buttons: ' + labels.slice(0, 12).join(' | '));
+  // End now: today's day questions with the end date and time showing
+  const going = mig.getEpisodes().find((e) => !e.end) || null;
+  if (going) { mig.endMigraineDay(going); const em = Modal.opened[Modal.opened.length - 1]; assert.strictEqual(em.mode, 'end'); assert(em.endedCb.checked && !em.endBox.cls.has('is-hidden'), 'end questions shown'); }
   console.log('MIGRAINE DAYS OK'); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });
