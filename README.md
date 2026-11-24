@@ -185,7 +185,9 @@ The Symptoms card shows two pain averages: all bleeding days, and the first two 
 - **Each later day** (**Log migraine day** on the Overview, **Log today** on the in-progress banner, or click a day on the Migraine calendar) asks the same day questions, plus notes about today. Pain, where it hurts and symptoms start filled in from the day before.
 - **The last day:** tick **This is the last day of the migraine**; the migraine ends on that day's date and you choose the time of day it ended. **End now** on the banner opens today's questions with this already ticked.
 - **After saving**, a summary shows the dates, length, type and times, peak and average pain, medications, a day-by-day table and the possible causes, with **Edit episode** and **Back to dashboard**. The summary button on each episode in the Migraine tab's list shows it again, and each episode shows how many days were logged.
-- The full **Edit** window still edits a whole episode. Commands: **Log migraine day** and **Migraine started today**.
+- **Edit migraine episode** shows when it started and ended (dates and times of day), type and place, possible causes and notes, then the list of **migraine days** at the end. Each day has its pain, where it hurt, symptoms, relief tried, notes and medications; a day you don't change keeps the day before's pain, where it hurt and symptoms. The episode's peak pain, symptoms, locations and relief come from its days. Older episodes without days show their recorded values as day 1.
+- **Delete a day** with the bin icon on its row (or **Delete this day** in the day window). Deleting the first or last day moves the start or end date; a day in the middle then keeps the day before's values; deleting the only day moves the episode to the trash.
+- Commands: **Log migraine day**, **Migraine started today**, and **Log a migraine** (opens the Migraine started window).
 
 **Aura.** Symptoms include **Visual aura** and **Silent aura** (aura without a headache). Either one, on any day, counts the episode in the *With aura* tile, the PDF and the visit summary.
 

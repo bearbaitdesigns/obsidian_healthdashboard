@@ -13,26 +13,35 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   let eps = mig.getEpisodes();
   assert.strictEqual(eps.length, 1); assert.deepStrictEqual(eps[0].days, []);
   // new 3-day episode: change day 2, leave day 3 (it keeps day 2's values)
-  registry.commands['migraine-tracker:log-migraine'].callback();
-  const m = Modal.opened[Modal.opened.length - 1];
+  const MMx = PluginClass._migraine;
+  const m = new MMx.EpisodeModal(mig); m.open();
+  assert(!m.maxPain && !m.symChips && !m.reliefChips, 'no overall pain, symptoms or relief in the episode window');
+  const secTitles = m.contentEl.querySelectorAll('.mt-section-title').map((x) => x.textContent);
+  assert.strictEqual(secTitles[secTitles.length - 1], 'Migraine days', 'list of days at the end: ' + secTitles.join(' | '));
   m.startInput.value = '2026-11-03'; m.endInput.value = '2026-11-05'; m.updateDuration();
-  m.maxPain.set(3); m.symChips.toggle('Nausea');
-  const days = m.daysBox.querySelectorAll('.mt-day');
+  let days = m.daysBox.querySelectorAll('.mt-day');
   assert.strictEqual(days.length, 3, 'one row per day');
-  // "Change this day" on day 2
+  days[0].querySelector('button').click();
+  const st1 = m.dayState.get('2026-11-03'); st1.pain = 3; st1.symptoms = ['Nausea']; m.renderDays();
+  days = m.daysBox.querySelectorAll('.mt-day');
   days[1].querySelector('button').click();
   const st2 = m.dayState.get('2026-11-04'); assert(st2, 'day 2 now logged');
-  st2.pain = 5; st2.symptoms = ['Nausea', 'Light sensitivity']; m.renderDays();
+  st2.pain = 5; st2.symptoms = ['Nausea', 'Light sensitivity']; st2.relief = ['Sleep']; m.renderDays();
   const text = m.daysBox.textContent;
   assert(text.includes('same as day 2'), 'day 3 follows day 2: ' + text);
+  // a medication on day 2 stays on day 2
+  const d2rows = m.daysBox.querySelectorAll('.mt-day')[1];
+  m.medRows = d2rows.querySelector('.mt-med-rows'); m.addMedRow({ name: 'Ibuprofen', dose: '400 mg', date: '2026-11-04', time: '', effect: 'Some relief' });
+  m.renderDays();
+  assert.strictEqual(m.medRowEls.filter((r) => r.date.value === '2026-11-04').length, 1, 'medication kept with day 2 after redraw');
   await m.save(); await flush();
   const f = [...app.__files.keys()].find((k) => k.includes('Migraine 2026-11-03'));
   const fm = app.__files.get(f).fm;
   console.log('saved days:', JSON.stringify(fm.days), 'pain_max', fm.pain_max, 'symptoms', fm.symptoms);
-  assert.deepStrictEqual(fm.days, [{ date: '2026-11-03', pain: 3, symptoms: ['Nausea'] }, { date: '2026-11-04', pain: 5, symptoms: ['Nausea', 'Light sensitivity'] }]);
+  assert.deepStrictEqual(fm.days, [{ date: '2026-11-03', pain: 3, symptoms: ['Nausea'] }, { date: '2026-11-04', pain: 5, symptoms: ['Nausea', 'Light sensitivity'], relief: ['Sleep'] }]);
+  assert.deepStrictEqual(fm.relief, ['Sleep'], 'relief comes from the days'); assert(fm.medications.some((x) => x.startsWith('Ibuprofen | 400 mg | 2026-11-04')));
   assert.strictEqual(fm.pain_max, 5, 'peak includes day 2'); assert(fm.symptoms.includes('Light sensitivity'));
   assert.strictEqual(fm.pain_avg, 4.3, 'average worked out from days 3, 5, 5'); assert.strictEqual(fm.pain_avg_auto, true);
-  assert(!m.avgPain, 'no average pain question');
   eps = mig.getEpisodes(); const ep = eps.find((e) => e.days.length);
   const MM = PluginClass._migraine;
   assert.deepStrictEqual([MM.epDayPain(ep, '2026-11-03'), MM.epDayPain(ep, '2026-11-04'), MM.epDayPain(ep, '2026-11-05')], [3, 5, 5], 'day 1 keeps its pain, day 3 follows day 2');
@@ -47,7 +56,7 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   // an ongoing new episode: average follows the days, and End now works it out again
   registry.commands['migraine-tracker:log-migraine'].callback();
   const mo = Modal.opened[Modal.opened.length - 1];
-  mo.startInput.value = '2026-11-08'; mo.endInput.value = ''; mo.maxPain.set(4); mo.updateDuration();
+  mo.dateInput.value = '2026-11-08'; mo.maxPain.set(4); mo.endedCb.checked = false;
   await mo.save(); await flush();
   const on = mig.getEpisodes().find((e) => !e.end);
   assert.strictEqual(on.painAvg, 4); assert.strictEqual(on.avgAuto, true);
@@ -57,6 +66,7 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   const m3 = new MM.EpisodeModal(mig, ep); m3.open();
   m3.daysBox.querySelectorAll('.mt-day')[1].querySelector('button').click();
   m3.daysBox.querySelectorAll('.mt-day')[0].querySelector('button').click();
+  m3.medRowEls.forEach((r) => { r.name.value = ''; });
   await m3.save(); await flush();
   assert(!('days' in app.__files.get(f).fm), 'days removed when all reset');
 
@@ -118,5 +128,20 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   // End now: today's day questions with the end date and time showing
   const going = mig.getEpisodes().find((e) => !e.end) || null;
   if (going) { mig.endMigraineDay(going); const em = Modal.opened[Modal.opened.length - 1]; assert.strictEqual(em.mode, 'end'); assert(em.endedCb.checked && !em.endBox.cls.has('is-hidden'), 'end questions shown'); }
+  // delete a day: in the episode window (first day moves the start) and from the day window (last day moves the end)
+  const three = new (PluginClass._migraine.EpisodeModal)(mig); three.open();
+  three.startInput.value = '2026-09-10'; three.endInput.value = '2026-09-12'; three.updateDuration();
+  for (const k of [0, 1, 2]) { three.daysBox.querySelectorAll('.mt-day')[k].querySelector('button').click(); }
+  three.daysBox.querySelectorAll('.mt-day')[0].querySelector('.mt-day-del').click();
+  assert.strictEqual(three.startInput.value, '2026-09-11', 'first day deleted moves the start');
+  assert.strictEqual(three.daysBox.querySelectorAll('.mt-day').length, 2);
+  await three.save(); await flush();
+  const ep3 = mig.getEpisodes().find((e) => PluginClass._migraine.dayKey(e.start) === '2026-09-11');
+  assert(ep3 && ep3.days.length === 2, 'saved with two days');
+  const what = await mig.deleteMigraineDay(ep3, '2026-09-12'); await flush();
+  const ep3b = mig.getEpisodes().find((e) => PluginClass._migraine.dayKey(e.start) === '2026-09-11');
+  assert.strictEqual(what, 'day'); assert.strictEqual(PluginClass._migraine.dayKey(ep3b.end), '2026-09-11'); assert.strictEqual(ep3b.days.length, 1);
+  assert.strictEqual(await mig.deleteMigraineDay(ep3b, '2026-09-11'), 'episode', 'a one-day migraine is deleted whole'); await flush();
+  assert(!mig.getEpisodes().some((e) => PluginClass._migraine.dayKey(e.start) === '2026-09-11'));
   console.log('MIGRAINE DAYS OK'); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

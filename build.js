@@ -366,7 +366,7 @@ migraine = patch(migraine, "      const editBtn = b.createEl('button', { text: '
 migraine = patch(migraine, "    if (eps.length === 1 && !evt.shiftKey) { new EpisodeModal(this.plugin, eps[0]).open(); return; }",
   "    if (!evt.shiftKey) { new MigraineDayModal(this.plugin, date).open(); return; } // like the period calendar: a day opens that day", 'migraine calendar opens day');
 migraine = patch(migraine, "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });",
-  "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });\n    this.addCommand({ id: 'log-day', name: 'Log migraine day', callback: () => new MigraineDayModal(this, new Date()).open() });\n    this.addCommand({ id: 'migraine-started', name: 'Migraine started today', callback: () => this.migraineStarted() });", 'migraine day commands');
+  "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => this.migraineStarted(new Date()) });\n    this.addCommand({ id: 'log-day', name: 'Log migraine day', callback: () => new MigraineDayModal(this, new Date()).open() });\n    this.addCommand({ id: 'migraine-started', name: 'Migraine started today', callback: () => this.migraineStarted() });", 'migraine day commands');
 
 // Silent aura (aura without headache) is a symptom too, and counts as an aura
 migraine = patch(migraine, "    'Smell sensitivity', 'Visual aura', 'Blurred vision', 'Dizziness / vertigo',", "    'Smell sensitivity', 'Visual aura', 'Silent aura', 'Blurred vision', 'Dizziness / vertigo',", 'migraine silent aura symptom');
