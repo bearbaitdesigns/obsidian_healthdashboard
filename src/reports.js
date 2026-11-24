@@ -83,6 +83,8 @@ function buildPeriodReport(plugin, o) {
 }
 
 /* ---------------- Migraine ---------------- */
+/** The day Health Dashboard started recording migraines day by day (version 1.19) */
+const MIGRAINE_DAYS_SINCE = '2026-11-23';
 function buildMigraineReport(plugin, o) {
   const settings = plugin.settings, all = plugin.getEpisodes();
   const from = M.startOfDay(o.from);
@@ -111,6 +113,11 @@ function buildMigraineReport(plugin, o) {
       ['Most common type', st.types[0] ? st.types[0][0] : '–', st.types[0] ? st.types[0][1] + ' of ' + st.count + ' episodes' : ''],
       ['Most common trigger', st.triggers[0] ? st.triggers[0][0] : '–', st.triggers[0] ? st.triggers[0][1] + ' of ' + st.count + ' episodes' : 'none recorded'],
     ], 4);
+    // Recording changed: day-by-day logging and a calculated average pain from this date on
+    if (KK.keyOf(to) >= MIGRAINE_DAYS_SINCE) {
+      const byDay = eps.filter((e) => e.avgAuto || (e.days && e.days.length)).length;
+      R.note('How migraines are recorded changed on ' + KK.fmtKey(MIGRAINE_DAYS_SINCE) + '. From that date, each day of a migraine can be logged on its own (pain, where it hurt, symptoms, medications and relief), a day that isn\u2019t logged keeps the day before\u2019s pain and symptoms, and average pain is worked out from the pain on each day instead of being entered. Episodes logged before that date keep the peak and average pain that were entered at the time. In this report: ' + KK.plural(byDay, 'episode') + ' recorded the new way, ' + KK.plural(eps.length - byDay, 'episode') + ' the earlier way.');
+    }
     const medPerMonth = st.medDaysRange / months;
     if (medPerMonth >= settings.overuseThreshold) R.note('Acute medication was taken on about ' + medPerMonth.toFixed(0) + ' days per month in this period, at or above the ' + settings.overuseThreshold + '-day alert level set in the tracker.', true);
 
@@ -172,7 +179,7 @@ function buildMigraineReport(plugin, o) {
         (e.painMax == null ? '–' : e.painMax) + ' / ' + (e.painAvg == null ? '–' : e.painAvg),
         e.headLocation.join(', ') || '–',
         [e.symptoms.join(', '), e.triggers.length ? 'Causes: ' + e.triggers.join(', ') : ''].filter(Boolean).join('. ') || '–',
-        [e.medications.map(fmtMed).join('; '), e.notes ? 'Note: ' + e.notes : ''].filter(Boolean).join('. ') || '–',
+        [e.medications.map(fmtMed).join('; '), e.days && e.days.length > 1 ? 'Day by day: ' + e.days.map((d) => KK.fmtShort(d.date) + ' pain ' + d.pain + (d.relief && d.relief.length ? ', ' + d.relief.join(', ') : '')).join('; ') : '', e.notes ? 'Note: ' + e.notes : ''].filter(Boolean).join('. ') || '–',
       ]),
       { size: 7.8, drawCell: (ri, ci, c) => {
         if (ci !== 3 || !eps[ri].painMax) return false;

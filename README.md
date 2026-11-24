@@ -180,6 +180,14 @@ The Symptoms card shows two pain averages: all bleeding days, and the first two 
 
 ## Migraine: pain and symptoms day by day
 
+**Log day and Migraine started**, like the period tracker. On the Overview and the Migraine tab:
+- **Migraine started** starts today's migraine in one click, then opens the day window to add how it feels.
+- **Log migraine day** (or **Log day**, or click a day on the Migraine calendar) logs one day: pain, where it hurts, symptoms, medications taken that day, relief tried that day and notes. Pain, location and symptoms start filled in from the day before. Tick **The migraine ended this day** on the last day. A day with no migraine starts a new one; the day after a migraine that ended carries it on.
+- The in-progress banner has **Log today**. Commands: **Log migraine day** and **Migraine started today**.
+
+The Migraine PDF has a note saying that recording changed on November 23, 2026 (day-by-day logging and a worked-out average pain), how many episodes in the report use each way, and each day of a multi-day episode in the episode log.
+
+
 A migraine episode is one note. For a migraine that lasts more than a day, the episode window has a **Day by day** section with one row per day. Click **Change this day** to set that day's pain and symptoms. A day you don't change keeps the values of the day before, until you change them or the migraine ends; day 1 uses the pain and symptoms set above. The days are saved in the episode note as `days` (date, pain, symptoms). The calendar shades each day by that day's pain, and the episode's peak pain and symptoms include every day. You no longer enter an average pain: it is worked out from the pain on each day of the migraine (and again when you end it with **End now**). Episodes logged before keep the average you entered, and older episodes without days stay as they are.
 
 ## Glucose
@@ -422,6 +430,7 @@ Their settings (folders, pain scale, predictions, reports) are under **Settings 
 - A1C: Log A1C result / Create PDF report for doctor / Open dashboard / Edit this result / Export to CSV
 - Glucose: Log glucose reading / Import CGM data (CSV) / Create PDF report for doctor / Open dashboard / Edit this reading / Export to CSV
 - Period: Combine day notes into one note per period
+- Migraine: Log migraine day / Migraine started today
 - All the original Period Tracker and Migraine Tracker commands
 
 ## Link to the dashboard from a note

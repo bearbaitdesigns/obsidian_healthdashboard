@@ -467,3 +467,7 @@ svg circle.is-tip { r: 5; stroke: var(--background-primary); stroke-width: 1.5; 
 .hd-expand-body .pt-cal-day, .hd-expand-body .hk-cal-day, .hd-expand-body .hd-cal-day, .hd-expand-body .mt-cal-cell { aspect-ratio: auto !important; min-height: 0; height: clamp(54px, 10vh, 110px) !important; font-size: var(--font-ui-medium); }
 .hd-expand-body .pt-cal-grid, .hd-expand-body .hk-cal-grid, .hd-expand-body .hd-cal-grid, .hd-expand-body .mt-cal { gap: 6px; }
 .hd-has-expand .hd-cal-nav, .hd-has-expand .pt-cal-nav, .hd-has-expand .hk-cal-nav, .hd-has-expand .mt-cal-head { padding-right: 30px; }
+/* Log migraine day: medications are for the chosen day, so no date per row */
+.mt-day-modal .mt-med-date { display: none; }
+.mt-day-modal .mt-check { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.mt-day-extra { margin-top: 4px; font-size: var(--font-ui-smaller); color: var(--text-muted); }

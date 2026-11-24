@@ -595,7 +595,10 @@ class HubRenderer {
         hubButton(actions, 'plus', 'Log period day', () => new P.LogModal(app, per, today).open(), true);
         hubButton(actions, 'droplet', 'Period started', () => per.quickStart(), true);
       },
-      migraine: () => hubButton(actions, 'brain', 'Log migraine', () => new M.EpisodeModal(mig).open(), true),
+      migraine: () => {
+        hubButton(actions, 'plus', 'Log migraine day', () => new M.MigraineDayModal(mig, new Date()).open(), true);
+        hubButton(actions, 'brain', 'Migraine started', () => mig.migraineStarted(), true);
+      },
       visits: () => hubButton(actions, 'stethoscope', 'Log doctor visit', () => new V.VisitModal(vis).open(), true),
       bp: () => hubButton(actions, 'activity', 'Log blood pressure', () => new B.ReadingModal(this.ov.bp).open(), true),
       illness: () => hubButton(actions, 'thermometer', 'Log sickness', () => new I.IllnessModal(this.ov.illness).open(), true),
@@ -610,6 +613,7 @@ class HubRenderer {
       b.createSpan({ text: 'Migraine in progress since ' + M.fmtDate(ep.start) + ' (day ' + M.spanDays(ep.start, now) + ').' });
       b.createDiv({ cls: 'hd-spacer' });
       b.createEl('button', { text: 'End now', cls: 'mod-cta' }).onclick = () => mig.endEpisode(ep);
+      b.createEl('button', { text: 'Log today' }).onclick = () => new M.MigraineDayModal(mig, new Date()).open();
       b.createEl('button', { text: 'Edit' }).onclick = () => new M.EpisodeModal(mig, ep).open();
     }
 
@@ -891,11 +895,9 @@ class HubRenderer {
         menu.addItem((it) => it.setTitle('Edit migraine · ' + M.fmtDate(ep.start) + (ep.type ? ' · ' + ep.type : '')).setIcon('pencil')
           .onClick(() => new M.EpisodeModal(mig, ep).open()));
       }
-      menu.addItem((it) => it.setTitle('Log migraine · ' + label).setIcon('brain').onClick(() => {
+      menu.addItem((it) => it.setTitle('Log migraine day · ' + label).setIcon('brain').onClick(() => {
         const [yy, mm, dd] = P.fromDayNum(d).split('-').map(Number);
-        const nowD = new Date();
-        const isToday = d === P.todayNum();
-        new M.EpisodeModal(mig, null, { date: new Date(yy, mm - 1, dd, isToday ? nowD.getHours() : 9, isToday ? nowD.getMinutes() : 0) }).open();
+        new M.MigraineDayModal(mig, new Date(yy, mm - 1, dd)).open();
       }));
     }
     const vis = this.ov.visits;

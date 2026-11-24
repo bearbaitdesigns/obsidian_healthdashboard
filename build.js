@@ -335,10 +335,10 @@ period = patch(period, "    new Setting(c).setName('Log folder').setDesc('One no
   "    { const old = p.getEntries().filter((e) => e.kind === 'day').length;\n      new Setting(c).setName('One note per period').setDesc('Each period is one note that lists every day you logged (flow, pain, symptoms). ' + (old ? old + ' days are still in separate day notes from before: combine them into period notes. The old day notes go to the trash.' : 'All your days are already in period notes.'))\n        .addButton((b) => b.setButtonText('Combine day notes').setDisabled(!old).onClick(() => p.confirmConvert(() => this.display()))); }\n    new Setting(c).setName('Log folder').setDesc('Period notes are stored here, one per period (Period YYYY-MM-DD.md).')", 'period settings convert');
 
 // Migraine: pain and symptoms day by day inside one episode note (older episodes unchanged)
-const MDAYS = fs.readFileSync(path.join(__dirname, 'src/migraine-days.js'), 'utf8').split('/*@@MODAL@@*/');
+const MDAYS = fs.readFileSync(path.join(__dirname, 'src/migraine-days.js'), 'utf8').split(/\/\*@@(?:MODAL|PLUGIN)@@\*\//);
 migraine = patch(migraine, "function parseEpisode(file, fm) {", MDAYS[0] + "\nfunction parseEpisode(file, fm) {", 'migraine days helpers');
 migraine = patch(migraine, "    notes: fm.notes ? String(fm.notes) : '',\n  };\n}", "    notes: fm.notes ? String(fm.notes) : '',\n    days: parseEpDays(fm.days),\n    avgAuto: fm.pain_avg_auto === true || fm.pain_avg_auto === 'true',\n  };\n}", 'migraine parse days');
-migraine = patch(migraine, "    notes: ep.notes || '',\n    tags: ['migraine'],", "    notes: ep.notes || '',\n    days: ep.days && ep.days.length ? ep.days.map((d) => ({ date: d.date, pain: d.pain, symptoms: d.symptoms })) : undefined,\n    pain_avg_auto: ep.avgAuto ? true : undefined,\n    tags: ['migraine'],", 'migraine fm days');
+migraine = patch(migraine, "    notes: ep.notes || '',\n    tags: ['migraine'],", "    notes: ep.notes || '',\n    days: ep.days && ep.days.length ? ep.days.map(dayToFm) : undefined,\n    pain_avg_auto: ep.avgAuto ? true : undefined,\n    tags: ['migraine'],", 'migraine fm days');
 migraine = patch(migraine, "    const fm = stringifyYaml(episodeToFrontmatter(ep));", "    const fmo = episodeToFrontmatter(ep);\n    for (const k of Object.keys(fmo)) if (fmo[k] === undefined) delete fmo[k];\n    const fm = stringifyYaml(fmo);", 'migraine create days');
 migraine = patch(migraine, "    await this.app.fileManager.processFrontMatter(file, (fm) => { Object.assign(fm, data); });", "    await this.app.fileManager.processFrontMatter(file, (fm) => { Object.assign(fm, data); for (const k of Object.keys(data)) if (data[k] === undefined) delete fm[k]; });", 'migraine update days');
 migraine = patch(migraine, "    /* Triggers */\n", "    /* Day by day */\n    this.daysSec = this.section('Day by day', 'calendar-days');\n    this.renderDays();\n\n    /* Triggers */\n", 'migraine days section');
@@ -348,7 +348,7 @@ migraine = patch(migraine, "    const ep = this.collect();\n    if (!ep) return;
 migraine = patch(migraine, "/* ------------------------------------------------------------------ */\n/* Dashboard view", MDAYS[1] + "\n/* ------------------------------------------------------------------ */\n/* Dashboard view", 'migraine days modal methods');
 migraine = patch(migraine, "        const peak = Math.max(...eps.map((e) => e.painMax || 0));", "        const peak = Math.max(...eps.map((e) => epDayPain(e, key)));", 'migraine calendar day pain');
 migraine = patch(migraine, "      dayPain.set(k, Math.max(dayPain.get(k) || 0, e.painMax || 1));", "      dayPain.set(k, Math.max(dayPain.get(k) || 0, epDayPain(e, k) || 1));", 'migraine report day pain');
-migraine = patch(migraine, "module.exports._internals = { episodeDayKeys,", "module.exports._internals = { epDay, epDayPain, parseEpDays, episodeDayKeys,", 'migraine export days');
+migraine = patch(migraine, "module.exports._internals = { episodeDayKeys,", "module.exports._internals = { epDay, epDayPain, parseEpDays, autoPainAvg, MigraineDayModal, episodeDayKeys,", 'migraine export days');
 
 // Migraine: average pain is worked out from the pain on each day instead of being asked
 migraine = patch(migraine, "    // Average can't exceed maximum: picking one nudges the other if needed\n    this.maxPain = this.painSelector(pain, 'Maximum pain', this.ep.painMax ?? Math.ceil(PAIN_MAX * 0.6), (v) => {\n      if (this.avgPain && this.avgPain.get() > v) this.avgPain.set(v);\n    });\n    this.avgPain = this.painSelector(pain, 'Average pain', this.ep.painAvg ?? Math.ceil(PAIN_MAX * 0.4), (v) => {\n      if (this.maxPain.get() < v) this.maxPain.set(v);\n    });",
@@ -356,6 +356,17 @@ migraine = patch(migraine, "    // Average can't exceed maximum: picking one nud
 migraine = patch(migraine, "    let painAvg = this.avgPain.get();\n    if (painAvg > painMax) painAvg = painMax;", "    let painAvg = null; // worked out on save", 'migraine collect no avg');
 migraine = patch(migraine, "    painAvg: asPain(fm.pain_avg),", "    painAvg: asPainAvg(fm.pain_avg),", 'migraine parse avg decimal');
 migraine = patch(migraine, "    await this.app.fileManager.processFrontMatter(ep.file, (fm) => { fm.end = toDateValue(end); });", "    await this.app.fileManager.processFrontMatter(ep.file, (fm) => { fm.end = toDateValue(end); if (ep.avgAuto) fm.pain_avg = autoPainAvg(Object.assign({}, ep, { end })); });", 'migraine end recomputes avg');
+
+// Migraine: Log day and Migraine started, like the period tracker
+migraine = patch(migraine, "module.exports = MigraineTrackerPlugin;", MDAYS[2] + "\nmodule.exports = MigraineTrackerPlugin;", 'migraine day plugin methods');
+migraine = patch(migraine, "    const logBtn = actions.createEl('button', { cls: 'mod-cta mt-btn' });\n    setIcon(logBtn.createSpan(), 'plus');\n    logBtn.createSpan({ text: 'Log migraine' });\n    logBtn.onclick = () => new EpisodeModal(this.plugin).open();",
+  "    const logBtn = actions.createEl('button', { cls: 'mod-cta mt-btn' });\n    setIcon(logBtn.createSpan(), 'plus');\n    logBtn.createSpan({ text: 'Log day' });\n    logBtn.onclick = () => new MigraineDayModal(this.plugin, new Date()).open();\n    const startBtn = actions.createEl('button', { cls: 'mod-cta mt-btn' });\n    setIcon(startBtn.createSpan(), 'brain');\n    startBtn.createSpan({ text: 'Migraine started' });\n    startBtn.onclick = () => this.plugin.migraineStarted();", 'migraine header day buttons');
+migraine = patch(migraine, "      const editBtn = b.createEl('button', { text: 'Edit' });\n      editBtn.onclick = () => new EpisodeModal(this.plugin, ep).open();",
+  "      const dayBtn = b.createEl('button', { text: 'Log today' });\n      dayBtn.onclick = () => new MigraineDayModal(this.plugin, new Date()).open();\n      const editBtn = b.createEl('button', { text: 'Edit' });\n      editBtn.onclick = () => new EpisodeModal(this.plugin, ep).open();", 'migraine banner log today');
+migraine = patch(migraine, "    if (eps.length === 1 && !evt.shiftKey) { new EpisodeModal(this.plugin, eps[0]).open(); return; }",
+  "    if (!evt.shiftKey) { new MigraineDayModal(this.plugin, date).open(); return; } // like the period calendar: a day opens that day", 'migraine calendar opens day');
+migraine = patch(migraine, "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });",
+  "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });\n    this.addCommand({ id: 'log-day', name: 'Log migraine day', callback: () => new MigraineDayModal(this, new Date()).open() });\n    this.addCommand({ id: 'migraine-started', name: 'Migraine started today', callback: () => this.migraineStarted() });", 'migraine day commands');
 
 const wrap = (name, src) =>
   '/* ' + '='.repeat(66) + ' */\n/* ' + name.padEnd(66) + ' */\n/* ' + '='.repeat(66) + ' */\n' +
