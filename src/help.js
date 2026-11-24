@@ -118,7 +118,7 @@ function helpFor(host, key) {
         'Migraine days = calendar days touched by any episode in the period. Share of days = migraine days divided by days in the period.',
         'Episodes per month = episodes divided by (days in the period / 30.44).',
         'Average length uses ended episodes only. Pain uses your 0–' + pm + ' scale: 0 no pain, 1 very mild, 2 mild, 3 moderate, 4 severe, 5 very severe' + (pm === 10 ? ' (on 0–10, each word covers two points)' : '') + '.',
-        'With aura = the symptom “Visual aura” (or any symptom naming an aura) was logged, or the type is “Migraine with aura”.',
+        'With aura = the symptom “Visual aura” or “Silent aura” (aura without a headache), or any symptom naming an aura, was logged on any day, or the type is “Migraine with aura”.',
         'Acute-medication days = separate days in the last 30 on which you took any acute medication for a migraine.',
         'Helped = uses rated “Some relief” or “Full relief”, out of the uses you rated. “Not sure” and blank are not counted as rated.',
         'Patterns: episodes with each item, out of all episodes in the period. Migraines logged without an exact date are not counted.',

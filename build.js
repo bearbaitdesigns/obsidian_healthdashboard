@@ -368,6 +368,11 @@ migraine = patch(migraine, "    if (eps.length === 1 && !evt.shiftKey) { new Epi
 migraine = patch(migraine, "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });",
   "    this.addCommand({ id: 'log-migraine', name: 'Log a migraine', callback: () => new EpisodeModal(this).open() });\n    this.addCommand({ id: 'log-day', name: 'Log migraine day', callback: () => new MigraineDayModal(this, new Date()).open() });\n    this.addCommand({ id: 'migraine-started', name: 'Migraine started today', callback: () => this.migraineStarted() });", 'migraine day commands');
 
+// Silent aura (aura without headache) is a symptom too, and counts as an aura
+migraine = patch(migraine, "    'Smell sensitivity', 'Visual aura', 'Blurred vision', 'Dizziness / vertigo',", "    'Smell sensitivity', 'Visual aura', 'Silent aura', 'Blurred vision', 'Dizziness / vertigo',", 'migraine silent aura symptom');
+// The Migraine tab has Migraine started; days are logged from the calendar, the banner or the Overview
+migraine = patch(migraine, "    const logBtn = actions.createEl('button', { cls: 'mod-cta mt-btn' });\n    setIcon(logBtn.createSpan(), 'plus');\n    logBtn.createSpan({ text: 'Log day' });\n    logBtn.onclick = () => new MigraineDayModal(this.plugin, new Date()).open();\n", "", 'migraine no Log day button');
+
 const wrap = (name, src) =>
   '/* ' + '='.repeat(66) + ' */\n/* ' + name.padEnd(66) + ' */\n/* ' + '='.repeat(66) + ' */\n' +
   'const ' + name + ' = (function () {\nconst module = { exports: {} };\n' + src + '\nreturn module.exports;\n})();\n\n';

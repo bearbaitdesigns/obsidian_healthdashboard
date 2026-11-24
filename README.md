@@ -180,10 +180,12 @@ The Symptoms card shows two pain averages: all bleeding days, and the first two 
 
 ## Migraine: pain and symptoms day by day
 
-**Log day and Migraine started**, like the period tracker. On the Overview and the Migraine tab:
-- **Migraine started** starts today's migraine in one click, then opens the day window to add how it feels.
-- **Log migraine day** (or **Log day**, or click a day on the Migraine calendar) logs one day: pain, where it hurts, symptoms, medications taken that day, relief tried that day and notes. Pain, location and symptoms start filled in from the day before. Tick **The migraine ended this day** on the last day. A day with no migraine starts a new one; the day after a migraine that ended carries it on.
+**Log day and Migraine started**, like the period tracker:
+- **Migraine started** (Overview and Migraine tab) starts today's migraine in one click, then opens the day window to add how it feels.
+- **Log migraine day** (Overview, or click a day on the Migraine calendar) logs one day: pain, where it hurts, symptoms, medications taken that day, relief tried that day and notes. Pain, location and symptoms start filled in from the day before. Tick **The migraine ended this day** on the last day. A day with no migraine starts a new one; the day after a migraine that ended carries it on.
 - The in-progress banner has **Log today**. Commands: **Log migraine day** and **Migraine started today**.
+
+**Aura.** Symptoms include **Visual aura** and **Silent aura** (aura without a headache). Either one, on any day, counts the episode in the *With aura* tile, the PDF and the visit summary.
 
 The Migraine PDF has a note saying that recording changed on November 23, 2026 (day-by-day logging and a worked-out average pain), how many episodes in the report use each way, and each day of a multi-day episode in the episode log.
 

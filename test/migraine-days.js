@@ -91,5 +91,14 @@ const flush = () => new Promise((r) => setTimeout(r, 350));
   await mig.migraineStarted(); await new Promise((r) => setTimeout(r, 500));
   // the report explains the change
   assert(Modal.opened[Modal.opened.length - 1] instanceof MM2.MigraineDayModal, 'day window opens after Migraine started');
+  // aura: silent aura is a symptom and counts as an aura
+  assert(mig.settings.symptoms.includes('Silent aura') && mig.settings.symptoms.includes('Visual aura'));
+  assert(MM2.hadAura({ symptoms: ['Silent aura'] }) && MM2.hadAura({ symptoms: ['Visual aura'] }) && !MM2.hadAura({ symptoms: ['Nausea'], type: 'Migraine without aura' }));
+  // Migraine tab: Migraine started, no Log day button
+  await registry.commands['health-dashboard:open-dashboard'].callback(); await flush();
+  const root = app.workspace.getLeavesOfType('health-dashboard')[0].view.contentEl;
+  root.querySelectorAll('.hd-tab').find((b) => b.textContent === 'Migraine').click(); await flush();
+  const labels = root.querySelectorAll('button').map((b) => b.textContent.trim());
+  assert(labels.includes('Migraine started') && !labels.includes('Log day'), 'header buttons: ' + labels.slice(0, 12).join(' | '));
   console.log('MIGRAINE DAYS OK'); process.exit(0);
 })().catch((e) => { console.error(e); process.exit(1); });

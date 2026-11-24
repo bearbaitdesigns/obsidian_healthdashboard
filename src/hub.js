@@ -1576,6 +1576,17 @@ class HealthDashboardPlugin extends Plugin {
     this.addChild(mod); // loads it now and unloads it with Health Dashboard
     await mod.ready;
     // Re-render combined views when the tracker's data changes
+    // New symptom choices for people who already use the migraine tracker (added once, so removing them sticks)
+    if (def.key === 'migraine' && mod.settings && Array.isArray(mod.settings.symptoms) && !mod.settings.addedSilentAura) {
+      const sy = mod.settings.symptoms;
+      for (const [name, after] of [['Visual aura', 'Smell sensitivity'], ['Silent aura', 'Visual aura']]) {
+        if (sy.some((x) => String(x).toLowerCase() === name.toLowerCase())) continue;
+        const i = sy.indexOf(after);
+        if (i >= 0) sy.splice(i + 1, 0, name); else sy.push(name);
+      }
+      mod.settings.addedSilentAura = true;
+      await mod.saveSettings();
+    }
     if (def.key === 'period') {
       applyPeriodLabels(mod.settings);
       mod.renderers.add({ render: () => this.refreshHub() });
